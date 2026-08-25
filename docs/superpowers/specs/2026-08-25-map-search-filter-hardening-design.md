@@ -13,15 +13,15 @@ Fix the NAVER map that can remain indefinitely in a loading state, exclude touri
 
 ## Considered Approaches
 
-1. **Provider-specific readiness and search fallback chain (selected).** Use NAVER's documented callback parameter, explicit auth/network/timeout failures, filter tourist-bus-exclusive names in normalization, and search through Kakao, then NCP Geocoding, then demo data. This fixes the code race and preserves useful fallback behavior.
-2. **Poll for global SDK objects.** This is smaller but cannot reliably distinguish authentication failure from delayed readiness and creates arbitrary retry timing.
+1. **Provider-specific readiness and search fallback chain (selected).** Use NAVER's documented callback parameter, then briefly poll for the SDK global because the real callback fires just before `window.naver.maps` is assigned. Keep explicit auth/network/timeout failures, filter tourist-bus-exclusive names in normalization, and search through Kakao, then NCP Geocoding, then demo data.
+2. **Blindly poll for global SDK objects without the provider callback.** This is smaller but cannot reliably distinguish authentication failure from delayed readiness and creates arbitrary retry timing.
 3. **Switch all maps and search to Kakao.** This simplifies providers but is blocked by the missing Kakao REST and JavaScript keys and discards the configured NAVER map.
 
 ## Design
 
 ### NAVER map loader
 
-Extract a NAVER-specific loader from `MapPanel`. Before appending the script, register a unique global ready callback and the documented `navermap_authFailure` hook. Add the callback query parameter to the SDK URL. Resolve only when both the callback fires and `window.naver.maps` exists. Reject on script error, authentication failure, missing SDK global, or a bounded timeout. Every rejection moves the UI from `loading` to the existing error message; no path may silently return while still loading.
+Extract a NAVER-specific loader from `MapPanel`. Before appending the script, register a unique global ready callback and the documented `navermap_authFailure` hook. Add the callback query parameter to the SDK URL. After the callback fires, poll at a modest interval until `window.naver.maps` exists, bounded by the loader timeout. Reject on script error, authentication failure, or timeout. Every rejection moves the UI from `loading` to the existing error message; no path may silently return while still loading.
 
 Kakao behavior remains unchanged.
 
@@ -37,7 +37,7 @@ The NCP secret must never use a `NEXT_PUBLIC_` name and must never enter browser
 
 ## Minimal verification
 
-- One focused map-loader test proves that SDK readiness succeeds only via the callback and that a missing global or auth failure ends in `error`, not an endless spinner.
+- One focused map-loader test proves callback-before-global readiness, concurrent-call sharing, retry cleanup, and authentication failure without an endless spinner.
 - Extend the existing Seoul normalization test with tourist-bus-exclusive and mixed-use names.
 - Add at most one place-search test covering NCP mapping and demo fallback.
 - Run the focused tests, then the existing full Vitest suite once. Verify the rendered map manually at `http://127.0.0.1:3000` after rebuilding.

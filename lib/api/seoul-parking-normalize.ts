@@ -87,6 +87,9 @@ export function joinSeoulParkingRows(realtimeRows: SeoulRow[], staticRows: Seoul
     if (!coordinate) continue;
     const capacity = numeric(row, ["TPKCT"]);
     if (capacity === null || capacity <= 0) continue;
+    const name = text(row, ["PKLT_NM"]);
+    const normalizedName = name.replace(/\s/g, "");
+    if (normalizedName.includes("관광버스") && normalizedName.includes("전용")) continue;
     matchedRows += 1;
     const occupied = numeric(row, ["NOW_PRK_VHCL_CNT", "CUR_PARKING"]);
     const pay = text(row, ["PAY_YN", "PAY_YN_NM"]);
@@ -96,7 +99,7 @@ export function joinSeoulParkingRows(realtimeRows: SeoulRow[], staticRows: Seoul
       id: `seoul-${sourceId}`,
       sourceId,
       source: "SEOUL_OPEN_DATA",
-      name: text(row, ["PKLT_NM"]) || "공영주차장",
+      name: name || "공영주차장",
       address: text(row, ["ADDR"]) || "주소 정보 없음",
       latitude: coordinate.latitude,
       longitude: coordinate.longitude,

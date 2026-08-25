@@ -21,7 +21,7 @@ function parse(body: unknown): RecommendationRequest | null {
   const value = body as Partial<RecommendationRequest>;
   if (!coordinate(value.origin) || !coordinate(value.destination) || !value.destination.id || !value.destination.name) return null;
   const raw = value.destination as Partial<Place>;
-  const allowed = new Set<Place["source"]>(["KAKAO", "DEMO", "GPS", "MANUAL"]);
+  const allowed = new Set<Place["source"]>(["KAKAO", "NAVER", "DEMO", "GPS", "MANUAL"]);
   const destination: Place = {
     id: String(raw.id).slice(0, 160), name: String(raw.name).slice(0, 160), address: typeof raw.address === "string" ? raw.address.slice(0, 240) : "주소 정보 없음", latitude: raw.latitude as number, longitude: raw.longitude as number, category: typeof raw.category === "string" ? raw.category.slice(0, 80) : undefined, source: allowed.has(raw.source as Place["source"]) ? raw.source as Place["source"] : "MANUAL"
   };

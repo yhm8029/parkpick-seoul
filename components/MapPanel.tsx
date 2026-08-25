@@ -4,6 +4,7 @@ import { MapPinned } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Coordinate, MapProvider, ParkingRecommendation, Place } from "@/lib/types";
 import { Badge } from "@/components/Badge";
+import { loadNaverMapSdk } from "@/lib/maps/naver-sdk";
 
 const KAKAO_SCRIPT_ID = "kakao-map-sdk";
 const NAVER_SCRIPT_ID = "naver-map-sdk";
@@ -66,8 +67,7 @@ export function MapPanel({ origin, destination, recommendations, activeId, onSel
       });
     };
     const renderNaver = async () => {
-      window.navermap_authFailure = () => { if (!cancelled) setState("error"); };
-      await script(NAVER_SCRIPT_ID, `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(key)}`, () => Boolean(window.naver?.maps));
+      await loadNaverMapSdk(key);
       if (cancelled || !window.naver?.maps || !containerRef.current) return;
       const maps = window.naver.maps; containerRef.current.replaceChildren();
       const map = new maps.Map(containerRef.current, { center: new maps.LatLng(destination.latitude, destination.longitude), zoom: 14, zoomControl: true });

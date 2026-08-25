@@ -38,7 +38,7 @@ export const NAVER_READY_CALLBACK = "__parkpickNaverReady";
 export function loadNaverMapSdk(key: string, timeoutMs = 8_000): Promise<void>;
 ```
 
-The function must resolve immediately when `window.naver?.maps` already exists. Otherwise remove a stale `#naver-map-sdk`, register `window.__parkpickNaverReady` and `window.navermap_authFailure`, append the async SDK script with `ncpKeyId` and `callback`, reject on script error or timeout, and resolve only when the callback sees `window.naver?.maps`. Every settle path must clear its timer and restore or delete temporary callbacks.
+The function must resolve immediately when `window.naver?.maps` already exists. Otherwise remove a stale `#naver-map-sdk`, register `window.__parkpickNaverReady` and `window.navermap_authFailure`, append the async SDK script with `ncpKeyId` and `callback`, and share one in-flight promise because the script and callbacks are global singletons. When the callback precedes `window.naver.maps`, poll every 10 ms until the global appears or the bounded timeout rejects. Every settle path must clear timeout/poll timers and restore or delete temporary callbacks.
 
 Add `__parkpickNaverReady?: () => void` to `Window` in `types/maps.d.ts`. Replace the NAVER branch's generic `script()` call in `MapPanel` with `await loadNaverMapSdk(key)`. If the loader rejects, the existing outer catch must set `state` to `error`; no `loading` path may return silently because the SDK global is absent.
 

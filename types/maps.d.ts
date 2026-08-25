@@ -26,6 +26,7 @@ declare global {
       };
     };
     navermap_authFailure?: () => void;
+    __parkpickNaverReady?: () => void;
   }
   interface BeforeInstallPromptEvent extends Event {
     prompt: () => Promise<void>;

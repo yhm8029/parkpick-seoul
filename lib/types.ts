@@ -15,7 +15,7 @@ export interface Place extends Coordinate {
   name: string;
   address: string;
   category?: string;
-  source: "KAKAO" | "DEMO" | "GPS" | "MANUAL";
+  source: "KAKAO" | "NAVER" | "DEMO" | "GPS" | "MANUAL";
 }
 
 export interface FeeRule {

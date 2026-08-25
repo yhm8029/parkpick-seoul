@@ -130,6 +130,22 @@ describe("Seoul parking schema join", () => {
     );
     expect(duplicateRealtimeCode.lots).toHaveLength(0);
     expect(duplicateRealtimeCode.stats).toEqual({ liveRows: 2, matchedRows: 0, rejectedRows: 2 });
+
+    const TOURIST_BUS_EXCLUSIVE = "남산 관광버스전용 주차장";
+    const TOURIST_BUS_MIXED = "일반·관광버스 함께 이용 주차장";
+    const touristBusStatic = [
+      { PKLT_CD: "BUS-EXCLUSIVE", PKLT_NM: TOURIST_BUS_EXCLUSIVE, LAT: 37.5500, LOT: 126.9800, TPKCT: 20 },
+      { PKLT_CD: "BUS-MIXED", PKLT_NM: TOURIST_BUS_MIXED, LAT: 37.5600, LOT: 126.9900, TPKCT: 40 },
+    ];
+    const touristBusRealtime = [
+      { ...REALTIME_ROWS[0], PKLT_CD: "BUS-EXCLUSIVE", PKLT_NM: TOURIST_BUS_EXCLUSIVE, NOW_PRK_VHCL_CNT: 0 },
+      { ...REALTIME_ROWS[0], PKLT_CD: "BUS-MIXED", PKLT_NM: TOURIST_BUS_MIXED, NOW_PRK_VHCL_CNT: 1 },
+    ];
+    const touristBusResult = joinSeoulParkingRows(touristBusRealtime, touristBusStatic);
+    expect(touristBusResult.lots).toHaveLength(1);
+    expect(touristBusResult.lots[0]?.sourceId).toBe("BUS-MIXED");
+    expect(touristBusResult.lots[0]?.name).toBe(TOURIST_BUS_MIXED);
+    expect(touristBusResult.stats).toEqual({ liveRows: 2, matchedRows: 1, rejectedRows: 1 });
   });
 });
 
