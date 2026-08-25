@@ -37,14 +37,11 @@ async function runCheck(name, fn) {
 
 function loadTypeScript() {
   try {
-    return require("typescript");
+    const ts = require("typescript");
+    if (!ts.ScriptTarget?.ES2022) throw new Error("missing ScriptTarget.ES2022");
+    return ts;
   } catch {
-    const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
-    const globalRoot = execFileSync(npmCommand, ["root", "-g"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    }).trim();
-    return require(path.join(globalRoot, "typescript"));
+    throw new Error("TypeScript is unavailable or incompatible. Run npm ci first.");
   }
 }
 

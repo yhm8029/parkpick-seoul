@@ -53,7 +53,7 @@ check:repo
 → Next.js production build
 ```
 
-현재 실행 컨테이너는 npm registry DNS 연결이 차단되어 신규 의존성 설치 기반의 ESLint, Vitest, Next.js production build는 실행할 수 없었다. `check:repo`는 프로젝트 또는 전역 TypeScript를 사용해 제한된 환경에서도 실행되며, GitHub 커밋과 push는 연결된 저장소 API로 수행한다.
+현재 실행 컨테이너는 npm registry DNS 연결이 차단되어 신규 의존성 설치 기반의 ESLint, Vitest, Next.js production build는 실행할 수 없었다. `check:repo`는 잠긴 프로젝트-로컬 TypeScript만 사용해 실행되며, 누락되거나 호환되지 않을 때는 `npm ci`를 요구해 실패 종료한다. 전역 TypeScript나 의존성 미설치 상태에서는 실행되지 않는다. GitHub 커밋과 push는 연결된 저장소 API로 수행한다.
 
 
 ## 이번 환경의 전체 검증 시도
