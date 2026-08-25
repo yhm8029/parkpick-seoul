@@ -52,14 +52,19 @@ export interface RouteEstimate {
   source: "KAKAO_MOBILITY" | "ESTIMATE";
 }
 
-export interface RecommendationRequest {
+export interface RecommendationRequestBase {
   origin: Coordinate;
   destination: Place;
   arrivalAt: string;
   durationMinutes: number;
   profile: RecommendationProfile;
-  maxWalkMinutes: number;
 }
+
+export type DistanceSelection =
+  | { distanceMode: "AUTO" }
+  | { distanceMode: "MANUAL"; maxDistanceMeters: number };
+
+export type RecommendationRequest = RecommendationRequestBase & DistanceSelection;
 
 export interface ParkingRecommendation extends ParkingLot {
   rank: number;
@@ -90,5 +95,7 @@ export interface RecommendationResponse {
   dataMode: DataMode;
   dataNotice: string;
   destination: Place;
+  distanceMode: "AUTO" | "MANUAL";
+  effectiveDistanceMeters: number | null;
   recommendations: ParkingRecommendation[];
 }

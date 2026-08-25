@@ -75,6 +75,8 @@ const response: RecommendationResponse = {
     category: "문화·쇼핑",
     source: "DEMO"
   },
+  distanceMode: "AUTO",
+  effectiveDistanceMeters: 1_000,
   recommendations: [
     recommendation(1, "주차장 1"),
     recommendation(2, "주차장 2"),

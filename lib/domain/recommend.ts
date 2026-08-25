@@ -1,14 +1,37 @@
 import { estimateDriveDistanceMeters, estimateDriveMinutes, estimateWalkDistanceMeters, estimateWalkMinutes, haversineDistanceMeters } from "@/lib/domain/distance";
 import { calculateParkingFee } from "@/lib/domain/fees";
-import type { AvailabilityRisk, ConfidenceLevel, ParkingLot, ParkingRecommendation, RecommendationProfile, RecommendationRequest, RouteEstimate } from "@/lib/types";
+import type { AvailabilityRisk, ConfidenceLevel, ParkingLot, ParkingRecommendation, RecommendationRequest, RouteEstimate } from "@/lib/types";
 import { clamp } from "@/lib/utils";
 
-const WEIGHTS: Record<RecommendationProfile, Record<"availability" | "walk" | "cost" | "drive" | "reliability", number>> = {
+type ScoreKey = "availability" | "walk" | "cost" | "drive" | "reliability";
+
+const WEIGHTS: Record<RecommendationRequest["profile"], Record<ScoreKey, number>> = {
   BALANCED: { availability: .35, walk: .25, cost: .20, drive: .15, reliability: .05 },
   CHEAP: { availability: .25, walk: .15, cost: .45, drive: .10, reliability: .05 },
   NEAR: { availability: .25, walk: .45, cost: .05, drive: .20, reliability: .05 },
   CERTAIN: { availability: .55, walk: .15, cost: .05, drive: .10, reliability: .15 }
 };
+
+const AUTO_HARD_LIMIT_METERS = 1_000;
+const MANUAL_MIN_METERS = 50;
+const MANUAL_MAX_METERS = 1_000;
+const MANUAL_STEP_METERS = 50;
+const ROUND_TO_METERS = 50;
+
+export interface RankedParkingResult {
+  recommendations: ParkingRecommendation[];
+  effectiveDistanceMeters: number | null;
+}
+
+function roundUpTo(value: number, step: number): number {
+  return Math.ceil(value / step) * step;
+}
+
+function selectManualDistance(value: number | undefined): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return MANUAL_MAX_METERS;
+  const clamped = clamp(Math.round(value), MANUAL_MIN_METERS, MANUAL_MAX_METERS);
+  return Math.round(clamped / MANUAL_STEP_METERS) * MANUAL_STEP_METERS;
+}
 
 function ageMinutes(updatedAt: string | null | undefined, now: Date): number | null {
   if (!updatedAt) return null;
@@ -50,18 +73,48 @@ function risk(predicted: ParkingRecommendation["predictedAvailable"], lot: Parki
   return "MEDIUM";
 }
 
-export function recommendParking(lots: ParkingLot[], request: RecommendationRequest, routes: RouteEstimate[] = [], now = new Date()): ParkingRecommendation[] {
+export function recommendParking(lots: ParkingLot[], request: RecommendationRequest, routes: RouteEstimate[] = [], now = new Date()): RankedParkingResult {
   const routeMap = new Map(routes.map(route => [route.parkingId, route]));
-  const nearby = lots
+  const isAuto = request.distanceMode === "AUTO";
+  const manualLimit = isAuto ? 0 : selectManualDistance(request.maxDistanceMeters);
+  const hardLimitMeters = isAuto ? AUTO_HARD_LIMIT_METERS : manualLimit;
+
+  const measured = lots
     .filter(lot => lot.capacity > 0 && Number.isFinite(lot.latitude) && Number.isFinite(lot.longitude))
     .map(lot => ({ lot, distance: haversineDistanceMeters(lot, request.destination) }))
     .sort((a, b) => a.distance - b.distance)
-    .filter(item => item.distance <= 3_000)
-    .slice(0, 30);
-  const selected = nearby.length >= 3 ? nearby : lots
-    .map(lot => ({ lot, distance: haversineDistanceMeters(lot, request.destination) }))
-    .sort((a, b) => a.distance - b.distance)
-    .slice(0, 12);
+    .filter(item => item.distance <= hardLimitMeters);
+
+  let rankedCandidates: ParkingRecommendation[];
+  let effectiveDistanceMeters: number | null;
+  if (isAuto) {
+    const nearestThree = measured
+      .filter(item => item.distance <= AUTO_HARD_LIMIT_METERS)
+      .sort((a, b) => a.distance - b.distance || (a.lot.sourceId < b.lot.sourceId ? -1 : a.lot.sourceId > b.lot.sourceId ? 1 : 0))
+      .slice(0, 3);
+    if (nearestThree.length === 0) {
+      return { recommendations: [], effectiveDistanceMeters: null };
+    }
+    const farthestExact = nearestThree[nearestThree.length - 1].distance;
+    effectiveDistanceMeters = roundUpTo(farthestExact, ROUND_TO_METERS);
+    rankedCandidates = scoreAndRank(nearestThree, request, routeMap, now);
+  } else {
+    rankedCandidates = scoreAndRank(measured, request, routeMap, now).slice(0, 3);
+    effectiveDistanceMeters = manualLimit;
+  }
+
+  return {
+    recommendations: rankedCandidates.map((item, index) => ({ ...item, rank: index + 1 })),
+    effectiveDistanceMeters,
+  };
+}
+
+function scoreAndRank(
+  selected: { lot: ParkingLot; distance: number }[],
+  request: RecommendationRequest,
+  routeMap: Map<string, RouteEstimate>,
+  now: Date,
+): ParkingRecommendation[] {
 
   const contexts = selected.map(({ lot }) => {
     const fallbackDistance = estimateDriveDistanceMeters(request.origin, lot);
@@ -88,8 +141,7 @@ export function recommendParking(lots: ParkingLot[], request: RecommendationRequ
     const driveScore = clamp(100 - Math.max(0, context.route.driveMinutes - minDrive) / 15 * 100, 0, 100);
     const availabilityRisk = risk(predicted, lot);
     const raw = adjustedAvailability * weights.availability + walkScore * weights.walk + costScore * weights.cost + driveScore * weights.drive + reliabilityScore * weights.reliability;
-    const walkPenalty = context.walkMinutes > request.maxWalkMinutes ? Math.min(18, (context.walkMinutes - request.maxWalkMinutes) * 1.5) : 0;
-    const score = Math.round(clamp(raw - walkPenalty - (lot.isOpen === false ? 30 : 0), 0, 100));
+    const score = Math.round(clamp(raw - (lot.isOpen === false ? 30 : 0), 0, 100));
     const reasons: string[] = [];
     if (availabilityRisk === "LOW") reasons.push("도착 시에도 빈자리가 남을 가능성이 높습니다.");
     if (context.walkMinutes <= 10) reasons.push(`목적지까지 도보 약 ${context.walkMinutes}분입니다.`);
@@ -119,5 +171,9 @@ export function recommendParking(lots: ParkingLot[], request: RecommendationRequ
       warnings: warnings.slice(0, 3),
       scoreBreakdown: { availability: Math.round(adjustedAvailability), walk: Math.round(walkScore), cost: Math.round(costScore), drive: Math.round(driveScore), reliability: Math.round(reliabilityScore) }
     } satisfies ParkingRecommendation;
-  }).sort((a, b) => b.score - a.score || a.walkMinutes - b.walkMinutes).slice(0, 3).map((item, index) => ({ ...item, rank: index + 1 }));
+  }).sort((a, b) =>
+    b.score - a.score ||
+    a.walkMinutes - b.walkMinutes ||
+    (a.sourceId < b.sourceId ? -1 : a.sourceId > b.sourceId ? 1 : 0)
+  );
 }

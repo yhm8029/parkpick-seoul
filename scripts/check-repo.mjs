@@ -203,7 +203,7 @@ await runCheck("domain logic smoke tests", async () => {
       arrivalAt: "2026-08-25T09:30:00Z",
       durationMinutes: 180,
       profile: "BALANCED",
-      maxWalkMinutes: 15,
+      distanceMode: "AUTO",
     };
     const lot = (id, available, latitude = 37.501) => ({
       id,
@@ -234,17 +234,17 @@ await runCheck("domain logic smoke tests", async () => {
       lot("c", 2, 37.504),
       lot("d", 80, 37.52),
     ], request, [], now);
-    assert.equal(ranked.length, 3);
-    assert.deepEqual(ranked.map((item) => item.rank), [1, 2, 3]);
-    assert.ok(ranked[0].score >= ranked[1].score);
-    assert.ok(ranked[1].score >= ranked[2].score);
+    assert.equal(ranked.recommendations.length, 3);
+    assert.deepEqual(ranked.recommendations.map((item) => item.rank), [1, 2, 3]);
+    assert.ok(ranked.recommendations[0].score >= ranked.recommendations[1].score);
+    assert.ok(ranked.recommendations[1].score >= ranked.recommendations[2].score);
 
     const [withRoute] = recommendations.recommendParking(
       [lot("a", 50)],
       request,
       [{ parkingId: "a", driveMinutes: 7, driveDistanceMeters: 2200, source: "KAKAO_MOBILITY" }],
       now,
-    );
+    ).recommendations;
     assert.equal(withRoute.driveMinutes, 7);
     assert.equal(withRoute.routeSource, "KAKAO_MOBILITY");
     assert.ok(withRoute.predictedAvailable.min >= 0);
