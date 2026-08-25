@@ -58,13 +58,13 @@ const client = createNearbyParkingClient({
 const result = await client.fetchNearby({ latitude: 37.4979, longitude: 127.0276 }, 1000);
 
 expect(result.lots.map(lot => lot.sourceId)).toEqual(["B01-NS", "LIVE-NW", "STATIC-NS"]);
-expect(result.lots[0]).toMatchObject({
+expect(result.lots.find(lot => lot.sourceId === "LIVE-NW")).toMatchObject({
   source: "SEOUL_PARKING_PORTAL",
   occupiedSpaces: 28,
   availableSpaces: 87,
   realtimeSupported: true,
 });
-expect(result.lots[1]).toMatchObject({
+expect(result.lots.find(lot => lot.sourceId === "STATIC-NS")).toMatchObject({
   occupiedSpaces: null,
   availableSpaces: null,
   realtimeUpdatedAt: null,
