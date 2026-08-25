@@ -29,7 +29,7 @@ GPS 출발지와 목적지를 기준으로 서울 공영주차장의 빈자리, 
 ## 실행
 
 ```bash
-npm install
+npm ci
 cp .env.example .env.local
 npm run dev:https
 ```
@@ -51,6 +51,12 @@ API 키가 없어도 데모 모드로 모든 입력·추천·지도 미리보기
 | `NEXT_PUBLIC_GITHUB_REPO_URL` | 헤더 GitHub 링크 |
 
 네이버 지도 JavaScript API의 현재 로딩 파라미터는 기존 `ncpClientId`가 아니라 `ncpKeyId`입니다. 카카오와 네이버 콘솔 양쪽에 `localhost`와 실제 배포 도메인을 등록해야 합니다.
+
+### 실제 실시간 데이터(LIVE 결합)
+
+`SEOUL_OPEN_API_KEY`가 설정되어 있으면 `GetParkingInfo` 실시간 행과 `GetParkInfo`의 정적 `LAT`/`LOT`를 정확히 같은 `PKLT_CD`로 결합합니다. 이름·주소·전화번호, 수용량·점유량·갱신시각·요금은 실시간 행을 사용하고 좌표만 정적 행에서 가져옵니다. 좌표가 잘못됐거나 매칭되지 않은 행, 중복된 실시간 `PKLT_CD`, 수용량이 없거나 0 이하인 행은 제외합니다. 결합 결과가 3건 미만이면 실패 종료되어 기존 `FALLBACK` 경로를 사용합니다.
+
+fixture 기반 LIVE 결합 회귀 검증은 완료했습니다. 운영시간·공휴일 의미와 과거 추세 데이터는 아직 구현하지 않았습니다.
 
 ## 지도와 네비 역할
 
@@ -116,7 +122,7 @@ npm run check:repo
 의존성 설치가 가능한 개발 환경의 전체 검증:
 
 ```bash
-npm install
+npm ci
 npm run verify
 ```
 

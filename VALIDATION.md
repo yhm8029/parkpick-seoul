@@ -8,6 +8,12 @@
 
 ## 자체 검증 명령
 
+잠긴 의존성을 먼저 깨끗하게 설치한다.
+
+```bash
+npm ci
+```
+
 ```bash
 npm run check:repo
 ```
@@ -27,13 +33,20 @@ npm run check:repo
 - 추적된 환경파일·개인키
 - `git diff --check`
 
-## 이번 커밋에서 수행한 결과
+## 서울시 LIVE 결합 회귀 계약
 
-- `npm run check:repo`: 9/9 통과
-- TypeScript/TSX 28개 파일 syntax transpile 통과
-- 외부 React/Next 타입을 임시 격리한 내부 TypeScript 타입검사 통과
-- 요금·거리·추천순위·경로·예측범위 도메인 검증 통과
-- GitHub Actions 및 임시 workflow 파일 부재 확인
+fixture 회귀 검증은 `GetParkingInfo` 실시간 행과 `GetParkInfo` 정적 좌표를 정확한 `PKLT_CD`로 결합하는 경로를 검사한다. 잘못된 좌표와 미매칭 행, 중복 실시간 코드, 수용량이 없거나 0 이하인 행은 제외하며, 유효한 결합 결과가 3건 미만이면 LIVE 로드를 실패시켜 Route Handler의 기존 `FALLBACK` 경로로 넘긴다.
+
+운영시간·공휴일 의미와 과거 추세 데이터는 이번 회귀 계약에 포함하지 않는다.
+
+## 이번 브랜치에서 수행한 결과
+
+- `npm run check:repo`: 9/9 통과, TypeScript/TSX 33개 파일 syntax transpile 포함
+- `npm run typecheck`: 통과
+- `npm test`: 4개 파일, 18개 테스트 통과
+- `npm run build`: Next.js production build 통과
+- `npm run lint`: 기존 5개 파일의 오류 7건으로 실패. 이번 브랜치는 해당 파일을 변경하지 않음
+- `git diff --check`: 통과
 
 ## 전체 개발환경 검증
 
@@ -53,9 +66,6 @@ check:repo
 → Next.js production build
 ```
 
-현재 실행 컨테이너는 npm registry DNS 연결이 차단되어 신규 의존성 설치 기반의 ESLint, Vitest, Next.js production build는 실행할 수 없었다. `check:repo`는 잠긴 프로젝트-로컬 TypeScript만 사용해 실행되며, 누락되거나 호환되지 않을 때는 `npm ci`를 요구해 실패 종료한다. 전역 TypeScript나 의존성 미설치 상태에서는 실행되지 않는다. GitHub 커밋과 push는 연결된 저장소 API로 수행한다.
+`check:repo`는 잠긴 프로젝트-로컬 TypeScript만 사용해 실행되며, 누락되거나 호환되지 않을 때는 `npm ci`를 요구해 실패 종료한다. 전역 TypeScript나 의존성 미설치 상태에서는 실행되지 않는다.
 
-
-## 이번 환경의 전체 검증 시도
-
-`npm run verify`를 실제 실행했다. `check:repo` 9개 항목은 모두 통과했지만, 이 컨테이너에는 `node_modules`가 없고 npm registry 외부 접속이 차단되어 다음 `ESLint` 단계에서 `eslint: not found`로 중단됐다. 이는 소스 검사 실패가 아니라 의존성 설치 불가에 따른 실행환경 제한이다.
+이번 검증에서는 같은 단계를 중복하지 않도록 `verify` 대신 각 명령을 한 번씩 실행했다. 전체 게이트는 기존 ESLint 오류 7건 때문에 아직 통과 상태가 아니다.
