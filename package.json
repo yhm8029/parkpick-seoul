@@ -1,0 +1,38 @@
+{
+  "name": "parkpick-seoul",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "GPS-first Seoul public parking recommendation PWA with Kakao Map and Naver Map integration.",
+  "license": "MIT",
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "dev:https": "next dev --experimental-https --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "engines": { "node": ">=22.0.0" },
+  "dependencies": {
+    "lucide-react": "1.33.0",
+    "next": "16.3.2",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "26.2.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "16.3.2",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yhm8029/parkpick-seoul.git"
+  },
+  "homepage": "https://github.com/yhm8029/parkpick-seoul#readme"
+}

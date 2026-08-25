@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
+  <title id="title">ParkPick Seoul UI preview</title>
+  <desc id="desc">목적지 검색, 추천 주차장 목록, 카카오맵과 네이버지도 전환을 보여주는 웹앱 시안</desc>
+  <rect width="1440" height="900" fill="#edf4f2"/>
+  <rect x="64" y="48" width="1312" height="804" rx="28" fill="#ffffff"/>
+  <rect x="64" y="48" width="1312" height="84" rx="28" fill="#0b6b57"/>
+  <rect x="64" y="104" width="1312" height="28" fill="#0b6b57"/>
+  <text x="104" y="101" font-family="Arial, sans-serif" font-size="32" font-weight="700" fill="#ffffff">ParkPick Seoul</text>
+  <text x="410" y="98" font-family="Arial, sans-serif" font-size="18" fill="#d9f4ec">서울 공영주차 추천 · GPS · Kakao · Naver</text>
+  <rect x="96" y="164" width="482" height="64" rx="18" fill="#f5f8f7" stroke="#c8d8d4"/>
+  <text x="124" y="204" font-family="Arial, sans-serif" font-size="19" fill="#667a75">목적지 또는 주소를 검색하세요</text>
+  <rect x="596" y="164" width="148" height="64" rx="18" fill="#0b6b57"/>
+  <text x="637" y="204" font-family="Arial, sans-serif" font-size="19" font-weight="700" fill="#ffffff">GPS 사용</text>
+  <rect x="762" y="164" width="136" height="64" rx="18" fill="#ffffff" stroke="#0b6b57" stroke-width="2"/>
+  <text x="792" y="204" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#0b6b57">카카오맵</text>
+  <rect x="912" y="164" width="136" height="64" rx="18" fill="#16a085"/>
+  <text x="942" y="204" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#ffffff">네이버지도</text>
+  <rect x="96" y="264" width="510" height="540" rx="24" fill="#f8fbfa" stroke="#d5e1de"/>
+  <text x="128" y="308" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#173f36">코엑스 주변 추천</text>
+  <g font-family="Arial, sans-serif">
+    <rect x="124" y="340" width="454" height="130" rx="18" fill="#ffffff" stroke="#0b6b57" stroke-width="3"/>
+    <circle cx="158" cy="375" r="18" fill="#0b6b57"/><text x="152" y="382" font-size="18" font-weight="700" fill="#fff">1</text>
+    <text x="192" y="382" font-size="21" font-weight="700" fill="#173f36">봉은사로 공영주차장</text>
+    <text x="152" y="422" font-size="17" fill="#425d56">현재 34면 · 도착 시 18~29면 · 도보 6분</text>
+    <text x="152" y="451" font-size="17" fill="#425d56">3시간 예상 7,200원 · 갱신 4분 전</text>
+    <rect x="124" y="492" width="454" height="118" rx="18" fill="#ffffff" stroke="#d5e1de"/>
+    <circle cx="158" cy="527" r="18" fill="#56877a"/><text x="152" y="534" font-size="18" font-weight="700" fill="#fff">2</text>
+    <text x="192" y="534" font-size="20" font-weight="700" fill="#173f36">삼성동 공영주차장</text>
+    <text x="152" y="573" font-size="17" fill="#425d56">현재 22면 · 도보 8분 · 예상 5,400원</text>
+    <rect x="124" y="632" width="454" height="118" rx="18" fill="#ffffff" stroke="#d5e1de"/>
+    <circle cx="158" cy="667" r="18" fill="#7c9e95"/><text x="152" y="674" font-size="18" font-weight="700" fill="#fff">3</text>
+    <text x="192" y="674" font-size="20" font-weight="700" fill="#173f36">탄천 공영주차장</text>
+    <text x="152" y="713" font-size="17" fill="#425d56">현재 58면 · 도보 13분 · 예상 3,600원</text>
+  </g>
+  <rect x="638" y="264" width="706" height="540" rx="24" fill="#dce9e5"/>
+  <path d="M668 340 C850 280 985 440 1170 330 S1324 420 1324 420" fill="none" stroke="#ffffff" stroke-width="22" opacity=".9"/>
+  <path d="M720 780 C815 610 1020 700 1280 510" fill="none" stroke="#ffffff" stroke-width="18" opacity=".85"/>
+  <path d="M650 510 H1340 M780 270 V800 M1090 270 V800" stroke="#c5d8d2" stroke-width="8" opacity=".65"/>
+  <g font-family="Arial, sans-serif" text-anchor="middle">
+    <circle cx="942" cy="455" r="34" fill="#0b6b57"/><text x="942" y="464" font-size="26" font-weight="700" fill="#fff">1</text>
+    <circle cx="1115" cy="570" r="30" fill="#56877a"/><text x="1115" y="579" font-size="23" font-weight="700" fill="#fff">2</text>
+    <circle cx="842" cy="650" r="28" fill="#7c9e95"/><text x="842" y="658" font-size="21" font-weight="700" fill="#fff">3</text>
+    <path d="M1215 376c-34 0-61 27-61 61 0 45 61 93 61 93s61-48 61-93c0-34-27-61-61-61z" fill="#ef665f"/>
+    <circle cx="1215" cy="437" r="20" fill="#fff"/>
+    <text x="1215" y="552" font-size="18" font-weight="700" fill="#173f36">목적지</text>
+  </g>
+</svg>

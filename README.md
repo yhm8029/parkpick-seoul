@@ -4,7 +4,7 @@ GPS 출발지와 목적지를 기준으로 서울 공영주차장의 빈자리, 
 
 > 지금 출발하면 어디에 주차하는 것이 가장 유리한가?
 
-![ParkPick Seoul preview](docs/ui-preview.png)
+![ParkPick Seoul preview](docs/ui-preview.svg)
 
 ## 구현된 기본 기능
 

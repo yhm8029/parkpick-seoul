@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">ParkPick Seoul maskable icon</title>
+  <desc id="desc">안전 영역을 확보한 주차 추천 앱 아이콘</desc>
+  <rect width="512" height="512" fill="#0b6b57"/>
+  <circle cx="256" cy="256" r="190" fill="#ffffff"/>
+  <path fill="#0b6b57" d="M171 151h119c62 0 105 38 105 95 0 58-43 97-105 97h-46v51h-73V151zm73 60v73h40c25 0 40-14 40-37 0-22-15-36-40-36h-40z"/>
+  <path fill="#16a085" d="M342 290c-34 0-61 27-61 61 0 44 61 91 61 91s61-47 61-91c0-34-27-61-61-61zm0 83a22 22 0 1 1 0-44 22 22 0 0 1 0 44z"/>
+</svg>
