@@ -10,7 +10,7 @@
 - [x] NAVER Web Dynamic Map (`ncpKeyId`)
 - [x] Kakao Navi와 NAVER 지도 URL Scheme/Intent
 - [x] PWA, 오프라인 화면, 반응형 UI
-- [x] 테스트와 Vercel Git CI/CD
+- [x] 테스트와 로컬 전체 검증 명령
 
 ## v0.2 live hardening
 

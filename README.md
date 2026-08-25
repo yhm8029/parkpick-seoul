@@ -22,7 +22,7 @@ GPS 출발지와 목적지를 기준으로 서울 공영주차장의 빈자리, 
 - Android 네이버지도 Intent, iOS 앱 미설치 스토어 폴백
 - PWA manifest, 홈 화면 설치, 서비스워커, 오프라인 화면
 - 모바일 하단 고정 출발 버튼
-- 단위 테스트와 Vercel Git 기반 CI/CD
+- 단위 테스트와 로컬 전체 검증 명령
 
 현재 버전은 기본 틀입니다. 과거 주차 스냅샷 DB는 아직 저장하지 않으므로 도착시점 예상은 현재 가용면, 최근 추세가 있을 경우의 증감, 데이터 지연을 이용한 범위입니다. 요일·시간대 패턴 예측은 다음 단계입니다.
 
@@ -101,38 +101,31 @@ SPEC.md                    상세 제품·기술 명세
 
 현재 기본 틀은 의존성을 작게 유지하기 위해 위 라이브러리들을 직접 설치하지 않고 책임 분리만 적용했습니다.
 
-## CI/CD: GitHub Actions 대신 Vercel
+## 로컬 검증 후 커밋·푸시
 
-이 저장소는 GitHub Actions를 사용하지 않습니다. Vercel에 GitHub 저장소를 한 번 연결하면 다음 흐름으로 동작합니다.
+이 저장소는 GitHub Actions를 사용하지 않습니다. 외부 CI에 의존하지 않고, 변경한 컴퓨터에서 직접 검증한 뒤 커밋·푸시합니다.
 
-```text
-브랜치 push / Pull Request
-→ Vercel Preview Build
-→ ESLint
-→ TypeScript typecheck
-→ Vitest
-→ Next.js production build
-→ 성공한 경우에만 Preview URL 생성
-
-main push / merge
-→ 동일 검증
-→ Production 배포
-```
-
-Vercel이 실행하는 명령은 `npm run vercel-build`이며, 내부적으로 `lint → typecheck → test → next build`를 순서대로 수행합니다. 따라서 GitHub Actions 사용량을 소비하지 않으면서 빌드 실패를 배포 차단 조건으로 사용할 수 있습니다.
-
-로컬에서 같은 검증을 실행하려면 다음 명령을 사용합니다.
+외부 패키지를 설치하지 못하는 제한된 환경에서도 실행 가능한 자체 검사:
 
 ```bash
+npm run check:repo
+```
+
+이 검사는 Actions 워크플로 부재, JSON 설정, `.env.example` 필수 키, 전체 TypeScript/TSX 구문, 주차요금·추천순위·경로·예측 핵심 로직, PWA 자산과 서비스워커 캐시, 비밀파일 추적 여부와 Git 공백 오류를 확인합니다.
+
+의존성 설치가 가능한 개발 환경의 전체 검증:
+
+```bash
+npm install
 npm run verify
 ```
 
-## 검증
+`verify`는 `check:repo → ESLint → TypeScript typecheck → Vitest → Next.js production build` 순서로 실행합니다. 모두 통과한 뒤에만 커밋합니다.
 
 ```bash
-npm run typecheck
-npm test
-npm run build
+git add -A
+git commit -m "변경 내용"
+git push origin main
 ```
 
 ## 다음 단계
