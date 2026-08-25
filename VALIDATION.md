@@ -10,7 +10,7 @@
 - UI 시안 PNG 생성·육안 확인
 - 로컬 Git `main` 초기 커밋
 
-## GitHub Actions에서 수행
+## 로컬 또는 Vercel에서 수행
 
 ```text
 npm install
@@ -19,4 +19,4 @@ npm test
 npm run build
 ```
 
-현재 작업 컨테이너는 npm registry DNS가 연결되지 않아 의존성 설치와 실제 Next.js production build는 여기서 실행하지 못했다. 공개 저장소에 push하면 CI가 실제 패키지 타입과 빌드를 검증하도록 설정되어 있다.
+현재 작업 컨테이너는 npm registry DNS가 연결되지 않아 의존성 설치와 실제 Next.js production build는 여기서 실행하지 못했다. Vercel Git 배포는 `npm run vercel-build`를 실행해 lint, 타입검사, 테스트, 프로덕션 빌드가 모두 통과한 경우에만 배포한다.

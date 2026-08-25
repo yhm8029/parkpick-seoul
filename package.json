@@ -8,13 +8,17 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "dev:https": "next dev --experimental-https --turbopack",
-    "build": "next build",
-    "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "verify": "npm run lint && npm run typecheck && npm test",
+    "build": "next build",
+    "vercel-build": "npm run verify && npm run build",
+    "start": "next start"
   },
-  "engines": { "node": ">=22.0.0" },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "dependencies": {
     "lucide-react": "1.33.0",
     "next": "16.3.2",
