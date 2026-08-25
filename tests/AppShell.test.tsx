@@ -177,4 +177,15 @@ describe("AppShell recommendation results", () => {
     expect(listButton.className).toContain("is-active");
     expect(mapButton.className).not.toContain("is-active");
   });
+
+  it("announces results and moves focus to the result heading", async () => {
+    const user = await renderReadyApp();
+    await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
+
+    await screen.findByRole("heading", { name: "코엑스 주변 추천" });
+    expect(screen.getByRole("status").textContent).toBe("코엑스 추천 3개를 불러왔습니다.");
+    await vi.waitFor(() => {
+      expect(document.activeElement?.id).toBe("recommendation-title");
+    });
+  });
 });

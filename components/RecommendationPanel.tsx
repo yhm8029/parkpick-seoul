@@ -1,5 +1,6 @@
 "use client";
 
+import type { RefObject } from "react";
 import { CircleAlert, List, Map } from "lucide-react";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
@@ -7,6 +8,7 @@ import { ParkingCard } from "@/components/ParkingCard";
 import type { RecommendationResponse } from "@/lib/types";
 
 export interface RecommendationPanelProps {
+  headingRef: RefObject<HTMLHeadingElement | null>;
   result: RecommendationResponse;
   activeId: string | null;
   mobileView: "map" | "list";
@@ -15,12 +17,13 @@ export interface RecommendationPanelProps {
   onEdit: () => void;
 }
 
-export function RecommendationPanel({ result, activeId, mobileView, onSelect, onMobileViewChange, onEdit }: RecommendationPanelProps) {
+export function RecommendationPanel({ headingRef, result, activeId, mobileView, onSelect, onMobileViewChange, onEdit }: RecommendationPanelProps) {
   return <section className="result-panel" aria-labelledby="recommendation-title">
     <div className="results-head">
       <div>
         <span className="eyebrow">TOP 3 RECOMMENDATIONS</span>
-        <h2 id="recommendation-title">{result.destination.name} 주변 추천</h2>
+        <h2 id="recommendation-title" ref={headingRef} tabIndex={-1}>{result.destination.name} 주변 추천</h2>
+        <p className="sr-only" role="status">{result.destination.name} 추천 {result.recommendations.length}개를 불러왔습니다.</p>
         <p>{result.dataNotice}</p>
       </div>
       <div className="result-actions">
