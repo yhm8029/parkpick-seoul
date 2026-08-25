@@ -16,6 +16,7 @@ export interface NearbyParkingClientOptions {
 const SEOUL_NEARBY_ENDPOINT = "https://parking.seoul.go.kr/SearchParking.do";
 const REQUEST_TIMEOUT_MS = 8_000;
 const CACHE_TTL_MS = 2 * 60_000;
+const CACHE_MAX_ENTRIES = 128;
 const CACHE_SCHEMA_VERSION = "seoul-parking-nearby.v1";
 const REALTIME_MAX_AGE_MS = 30 * 60_000;
 const SEOUL_LAT_MIN = 37;
@@ -199,9 +200,10 @@ export function createNearbyParkingClient(
     for (const row of rows) {
       const parkingCode = text(row, "parking_code");
       if (!parkingCode || seen.has(parkingCode)) continue;
-      seen.add(parkingCode);
       const lot = normalizeRow(row, nowMs);
-      if (lot) lots.push(lot);
+      if (!lot) continue;
+      seen.add(parkingCode);
+      lots.push(lot);
     }
     lots.sort((a, b) => (a.sourceId < b.sourceId ? -1 : a.sourceId > b.sourceId ? 1 : 0));
     return { lots, notice: buildNotice(lots) };
@@ -212,6 +214,7 @@ export function createNearbyParkingClient(
       destination: Coordinate,
       rangeMeters: number,
     ): Promise<{ lots: ParkingLot[]; notice: string }> {
+      purgeExpired();
       const key = buildCacheKey(destination, rangeMeters);
       const cached = cache.get(key);
       if (cached && cached.until > now()) return cached.value;
@@ -219,6 +222,10 @@ export function createNearbyParkingClient(
       if (active) return active;
       const request = load(destination, rangeMeters)
         .then((value) => {
+          if (cache.size >= CACHE_MAX_ENTRIES) {
+            const oldestKey = cache.keys().next().value;
+            if (oldestKey !== undefined) cache.delete(oldestKey);
+          }
           cache.set(key, { until: now() + CACHE_TTL_MS, value });
           return value;
         })
@@ -229,6 +236,13 @@ export function createNearbyParkingClient(
       return request;
     },
   };
+
+  function purgeExpired(): void {
+    const current = now();
+    for (const [entryKey, entry] of cache) {
+      if (entry.until <= current) cache.delete(entryKey);
+    }
+  }
 }
 
 const defaultClient = createNearbyParkingClient();

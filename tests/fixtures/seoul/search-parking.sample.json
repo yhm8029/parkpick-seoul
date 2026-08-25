@@ -1,8 +1,27 @@
 ﻿{
   "result_state": "0000",
   "res_value": {
-    "parking_list_count": 6,
+    "parking_list_count": 7,
     "parking_list": [
+      {
+        "parking_code": "LIVE-NW",
+        "parking_type": "NW",
+        "parking_name": "Invalid LIVE-NW Duplicate",
+        "capacity": "0",
+        "cur_parking": "0",
+        "cur_parking_time": "20260826090000",
+        "que_status": "1",
+        "rates": 0,
+        "time_rate": 0,
+        "add_rates": 0,
+        "add_time_rate": 0,
+        "day_maximum": 0,
+        "phone": "02-1111-0099",
+        "new_juso": "Invalid Duplicate Address",
+        "position_list": [
+          { "lat": 37.4900, "lng": 127.0200 }
+        ]
+      },
       {
         "parking_code": "LIVE-NW",
         "parking_type": "NW",

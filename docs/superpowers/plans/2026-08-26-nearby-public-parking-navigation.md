@@ -38,9 +38,10 @@
 
 - [ ] **Step 1: Add a sanitized fixture and failing adapter test**
 
-The fixture envelope must be `{ "result_state": "0000", "res_value": { "parking_list_count": 6, "parking_list": [...] } }` and contain:
+The fixture envelope must be `{ "result_state": "0000", "res_value": { "parking_list_count": 7, "parking_list": [...] } }` and contain:
 
 - one `NW` row with `capacity: "115"`, `cur_parking: "28"`, `que_status: "1"`, a current `cur_parking_time`, and valid `position_list[0].lat/lng`;
+- one invalid-first duplicate of that `NW` row (same `parking_code` but `capacity: "0"` and distinct name/address) placed BEFORE the valid `NW` row to prove dedup happens after normalization, not before;
 - one `NS` row with valid coordinates but `que_status: "0"`;
 - one valid-coordinate public boundary row with numeric strings but malformed `que_status: "01"`, which must remain non-realtime;
 - one `BS` row, which must be filtered;
@@ -56,7 +57,7 @@ const client = createNearbyParkingClient({
 });
 const result = await client.fetchNearby({ latitude: 37.4979, longitude: 127.0276 }, 1000);
 
-expect(result.lots.map(lot => lot.sourceId)).toEqual(["LIVE-NW", "STATIC-NS"]);
+expect(result.lots.map(lot => lot.sourceId)).toEqual(["B01-NS", "LIVE-NW", "STATIC-NS"]);
 expect(result.lots[0]).toMatchObject({
   source: "SEOUL_PARKING_PORTAL",
   occupiedSpaces: 28,
