@@ -2,6 +2,7 @@
 
 import { CircleAlert, List, Map } from "lucide-react";
 import { Badge } from "@/components/Badge";
+import { Button } from "@/components/Button";
 import { ParkingCard } from "@/components/ParkingCard";
 import type { RecommendationResponse } from "@/lib/types";
 
@@ -11,9 +12,10 @@ export interface RecommendationPanelProps {
   mobileView: "map" | "list";
   onSelect: (id: string) => void;
   onMobileViewChange: (view: "map" | "list") => void;
+  onEdit: () => void;
 }
 
-export function RecommendationPanel({ result, activeId, mobileView, onSelect, onMobileViewChange }: RecommendationPanelProps) {
+export function RecommendationPanel({ result, activeId, mobileView, onSelect, onMobileViewChange, onEdit }: RecommendationPanelProps) {
   return <section className="result-panel" aria-labelledby="recommendation-title">
     <div className="results-head">
       <div>
@@ -21,9 +23,12 @@ export function RecommendationPanel({ result, activeId, mobileView, onSelect, on
         <h2 id="recommendation-title">{result.destination.name} 주변 추천</h2>
         <p>{result.dataNotice}</p>
       </div>
-      <Badge tone={result.dataMode === "LIVE" ? "success" : result.dataMode === "FALLBACK" ? "warning" : "demo"}>
-        {result.dataMode === "LIVE" ? "서울시 실데이터" : result.dataMode === "FALLBACK" ? "대체 데이터" : "데모 모드"}
-      </Badge>
+      <div className="result-actions">
+        <Badge tone={result.dataMode === "LIVE" ? "success" : result.dataMode === "FALLBACK" ? "warning" : "demo"}>
+          {result.dataMode === "LIVE" ? "서울시 실데이터" : result.dataMode === "FALLBACK" ? "대체 데이터" : "데모 모드"}
+        </Badge>
+        <Button variant="ghost" size="sm" onClick={onEdit}>조건 변경</Button>
+      </div>
     </div>
     <div className="view-toggle" aria-label="결과 보기 방식">
       <button type="button" className={mobileView === "list" ? "is-active" : ""} onClick={() => onMobileViewChange("list")}><List size={16} /> 목록</button>
