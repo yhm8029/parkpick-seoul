@@ -15,6 +15,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
 
       - name: Rebuild source archive
         shell: bash
@@ -24,17 +27,14 @@ jobs:
           mkdir -p /tmp/parkpick-source
           tar -xzf /tmp/parkpick-source.tar.gz -C /tmp/parkpick-source
 
-      - name: Replace bootstrap branch with project source
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Replace bootstrap files with project source
         shell: bash
         run: |
           set -euo pipefail
-          cd /tmp/parkpick-source
-          git init -b main
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a /tmp/parkpick-source/. .
           git config user.name "HyunM"
           git config user.email "141546495+yhm8029@users.noreply.github.com"
           git add -A
           git commit -m "feat: scaffold GPS parking PWA with Kakao and Naver maps"
-          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git push --force origin main
+          git push origin HEAD:main
