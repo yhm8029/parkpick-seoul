@@ -1,0 +1,123 @@
+﻿{
+  "result_state": "0000",
+  "res_value": {
+    "parking_list_count": 6,
+    "parking_list": [
+      {
+        "parking_code": "LIVE-NW",
+        "parking_type": "NW",
+        "parking_name": "Seoul Public Live Lot",
+        "capacity": "115",
+        "cur_parking": "28",
+        "cur_parking_time": "20260826090000",
+        "que_status": "1",
+        "rates": 1000,
+        "time_rate": 30,
+        "add_rates": 500,
+        "add_time_rate": 10,
+        "day_maximum": 18000,
+        "phone": "02-1111-0001",
+        "new_juso": "Seoul Live Lot New Address",
+        "address": "Seoul Live Lot Old Address",
+        "position_list": [
+          { "lat": 37.5012, "lng": 127.0311 }
+        ]
+      },
+      {
+        "parking_code": "STATIC-NS",
+        "parking_type": "NS",
+        "parking_name": "Seoul Static Lot",
+        "capacity": "80",
+        "cur_parking": "12",
+        "cur_parking_time": "20260826090000",
+        "que_status": "0",
+        "rates": 500,
+        "time_rate": 30,
+        "add_rates": 300,
+        "add_time_rate": 10,
+        "day_maximum": 12000,
+        "phone": "02-1111-0002",
+        "new_juso": "Seoul Static Lot New Address",
+        "position_list": [
+          { "lat": 37.5510, "lng": 126.9901 }
+        ]
+      },
+      {
+        "parking_code": "B01-NS",
+        "parking_type": "NS",
+        "parking_name": "Seoul Boundary Lot",
+        "capacity": "70",
+        "cur_parking": "9",
+        "cur_parking_time": "20260826090000",
+        "que_status": "01",
+        "rates": 600,
+        "time_rate": 30,
+        "add_rates": 300,
+        "add_time_rate": 10,
+        "day_maximum": 15000,
+        "phone": "02-1111-0006",
+        "new_juso": "Seoul Boundary Lot Address",
+        "position_list": [
+          { "lat": 37.5600, "lng": 127.0000 }
+        ]
+      },
+      {
+        "parking_code": "PRIVATE-BS",
+        "parking_type": "BS",
+        "parking_name": "Private Operator Lot",
+        "capacity": "40",
+        "cur_parking": "10",
+        "cur_parking_time": "20260826090000",
+        "que_status": "1",
+        "rates": 0,
+        "time_rate": 0,
+        "add_rates": 0,
+        "add_time_rate": 0,
+        "day_maximum": 0,
+        "phone": "02-1111-0003",
+        "new_juso": "Seoul Private Address",
+        "position_list": [
+          { "lat": 37.5600, "lng": 127.0000 }
+        ]
+      },
+      {
+        "parking_code": "TOURIST-NW",
+        "parking_type": "NW",
+        "parking_name": "서울 관광버스 전용 주차장",
+        "capacity": "50",
+        "cur_parking": "5",
+        "cur_parking_time": "20260826090000",
+        "que_status": "1",
+        "rates": 0,
+        "time_rate": 0,
+        "add_rates": 0,
+        "add_time_rate": 0,
+        "day_maximum": 0,
+        "phone": "02-1111-0004",
+        "new_juso": "Seoul Tourist Bus Address",
+        "position_list": [
+          { "lat": 37.5700, "lng": 126.9800 }
+        ]
+      },
+      {
+        "parking_code": "ZERO-COORD-NW",
+        "parking_type": "NW",
+        "parking_name": "Zero Coordinate Lot",
+        "capacity": "60",
+        "cur_parking": "3",
+        "cur_parking_time": "20260826090000",
+        "que_status": "1",
+        "rates": 0,
+        "time_rate": 0,
+        "add_rates": 0,
+        "add_time_rate": 0,
+        "day_maximum": 0,
+        "phone": "02-1111-0005",
+        "new_juso": "Seoul Zero Coord Address",
+        "position_list": [
+          { "lat": 0, "lng": 0 }
+        ]
+      }
+    ]
+  }
+}

@@ -30,7 +30,7 @@ export interface FeeRule {
 export interface ParkingLot extends Coordinate {
   id: string;
   sourceId: string;
-  source: "SEOUL_OPEN_DATA" | "DEMO";
+  source: "SEOUL_OPEN_DATA" | "SEOUL_PARKING_PORTAL" | "DEMO";
   name: string;
   address: string;
   capacity: number;
