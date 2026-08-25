@@ -1,47 +1,131 @@
 import type { ParkingLot } from "@/lib/types";
-import { numberFrom, parseSeoulDate } from "@/lib/utils";
+import { joinSeoulParkingRows, type SeoulJoinResult, type SeoulRow, SEOUL_PARKING_PAGE_SIZE } from "@/lib/api/seoul-parking-normalize";
 
-let cache: { until: number; lots: ParkingLot[]; notice: string } | null = null;
-const first = (row: Record<string, unknown>, keys: string[]) => keys.map(key => row[key]).find(value => value !== undefined && value !== null && value !== "") ?? null;
-const text = (row: Record<string, unknown>, keys: string[], fallback = "") => String(first(row, keys) ?? fallback).trim();
-const num = (row: Record<string, unknown>, keys: string[]) => numberFrom(first(row, keys));
+type SeoulService = "GetParkInfo" | "GetParkingInfo";
+type SeoulPayload = {
+  list_total_count?: number;
+  row?: SeoulRow[];
+  RESULT?: { CODE?: string; MESSAGE?: string };
+};
 
-function normalize(row: Record<string, unknown>, index: number): ParkingLot | null {
-  const latitude = num(row, ["LAT", "LATITUDE", "YCODE", "Y"]);
-  const longitude = num(row, ["LOT", "LNG", "LONGITUDE", "XCODE", "X"]);
-  const capacity = num(row, ["TPKCT", "CAPACITY"]) ?? 0;
-  const occupied = num(row, ["NOW_PRK_VHCL_CNT", "CUR_PARKING"]);
-  if (latitude === null || longitude === null || capacity <= 0 || latitude < 37 || latitude > 38 || longitude < 126 || longitude > 128) return null;
-  const sourceId = text(row, ["PKLT_CD", "PARKING_CODE"], `row-${index}`);
-  const pay = text(row, ["PAY_YN", "PAY_YN_NM"]);
+type ValidatedSeoulPayload = {
+  list_total_count: number;
+  row: SeoulRow[];
+  RESULT: { CODE: "INFO-000"; MESSAGE?: string };
+};
+
+export interface SeoulParkingClientOptions {
+  fetchImpl?: typeof fetch;
+  now?: () => number;
+}
+
+export interface SeoulParkingFetchResult {
+  lots: ParkingLot[];
+  notice: string;
+  stats: SeoulJoinResult["stats"];
+}
+
+const CACHE_TTL_MS = 4 * 60_000;
+const REQUEST_TIMEOUT_MS = 8_000;
+const MIN_JOINED_ROWS = 3;
+const SEOUL_OPEN_API_BASE = "http://openapi.seoul.go.kr:8088";
+
+function readPayload(body: unknown, service: SeoulService): ValidatedSeoulPayload {
+  if (!body || typeof body !== "object") throw new Error(`Seoul API ${service} root missing`);
+  const root = (body as Record<string, unknown>)[service];
+  if (!root || typeof root !== "object") throw new Error(`Seoul API ${service} root missing`);
+  const payload = root as SeoulPayload;
+  const code = payload.RESULT?.CODE;
+  if (code !== "INFO-000") throw new Error(`Seoul API ${service} error: ${payload.RESULT?.MESSAGE ?? code ?? "missing result code"}`);
+  if (!Array.isArray(payload.row)) throw new Error(`Seoul API ${service} row missing`);
+  const total = payload.list_total_count;
+  if (!Number.isSafeInteger(total) || (total as number) < 0) throw new Error(`Seoul API ${service} total invalid`);
+  return { list_total_count: total as number, row: payload.row, RESULT: { CODE: "INFO-000", MESSAGE: payload.RESULT?.MESSAGE } };
+}
+
+function buildServiceUrl(key: string, service: SeoulService, start: number, end: number): string {
+  return `${SEOUL_OPEN_API_BASE}/${encodeURIComponent(key)}/json/${service}/${start}/${end}/`;
+}
+
+async function fetchSinglePage(fetchImpl: typeof fetch, key: string, service: SeoulService, collected: SeoulRow[], start: number, end: number): Promise<number> {
+  const response = await fetchImpl(buildServiceUrl(key, service, start, end), {
+    cache: "no-store",
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
+  if (!response.ok) throw new Error(`Seoul API ${service} HTTP ${response.status}`);
+  const body = await response.json();
+  const payload = readPayload(body, service);
+  for (const row of payload.row) collected.push(row);
+  return payload.list_total_count;
+}
+
+async function fetchService(fetchImpl: typeof fetch, key: string, service: SeoulService): Promise<SeoulRow[]> {
+  const collected: SeoulRow[] = [];
+  const total = await fetchSinglePage(fetchImpl, key, service, collected, 1, SEOUL_PARKING_PAGE_SIZE);
+  for (let start = SEOUL_PARKING_PAGE_SIZE + 1; start <= total; start += SEOUL_PARKING_PAGE_SIZE) {
+    const end = Math.min(start + SEOUL_PARKING_PAGE_SIZE - 1, total);
+    const pageTotal = await fetchSinglePage(fetchImpl, key, service, collected, start, end);
+    if (pageTotal !== total) throw new Error(`Seoul API ${service} total changed during paging`);
+  }
+  if (collected.length !== total) throw new Error(`Seoul API ${service} partial page set: expected ${total}, received ${collected.length}`);
+  return collected;
+}
+
+function buildNotice(joined: number, stats: SeoulJoinResult["stats"]): string {
+  return `서울시 실시간 점유 정보와 정적 좌표를 결합한 ${joined.toLocaleString("ko-KR")}건입니다. (결합 ${stats.matchedRows}건 / 제외 ${stats.rejectedRows}건)`;
+}
+
+export interface SeoulParkingClient {
+  fetchParkingLots(key: string): Promise<SeoulParkingFetchResult>;
+}
+
+export function createSeoulParkingClient(options: SeoulParkingClientOptions = {}): SeoulParkingClient {
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const now = options.now ?? Date.now;
+  const cache = new Map<string, { until: number; value: SeoulParkingFetchResult }>();
+  const inFlight = new Map<string, Promise<SeoulParkingFetchResult>>();
+
+  async function load(key: string): Promise<SeoulParkingFetchResult> {
+    const [staticRows, realtimeRows] = await Promise.all([
+      fetchService(fetchImpl, key, "GetParkInfo"),
+      fetchService(fetchImpl, key, "GetParkingInfo"),
+    ]);
+    const joined = joinSeoulParkingRows(realtimeRows, staticRows);
+    if (joined.lots.length < MIN_JOINED_ROWS) {
+      throw new Error(
+        `Seoul join below threshold: ${joined.lots.length} joined rows (${JSON.stringify(joined.stats)})`,
+      );
+    }
+    return { lots: joined.lots, notice: buildNotice(joined.lots.length, joined.stats), stats: joined.stats };
+  }
+
   return {
-    id: `seoul-${sourceId}`, sourceId, source: "SEOUL_OPEN_DATA", name: text(row, ["PKLT_NM", "PARKING_NAME"], "공영주차장"), address: text(row, ["ADDR", "ADDR_NEW", "ADDRESS"], "주소 정보 없음"), latitude, longitude, capacity,
-    occupiedSpaces: occupied, availableSpaces: occupied === null ? null : Math.max(0, capacity - occupied), realtimeUpdatedAt: parseSeoulDate(first(row, ["NOW_PRK_VHCL_UPDT_TM", "CUR_PARKING_TIME"])), realtimeSupported: occupied !== null,
-    feeRule: { isFree: pay.includes("무료") || pay === "N" || pay === "0", baseMinutes: num(row, ["BSC_PRK_HR", "TIME_RATE"]), baseFee: num(row, ["BSC_PRK_CRG", "RATES"]), additionalMinutes: num(row, ["ADD_PRK_HR", "ADD_TIME_RATE"]), additionalFee: num(row, ["ADD_PRK_CRG", "ADD_RATES"]), dailyMaximumFee: num(row, ["DLY_MAX_CRG", "DAY_MAXIMUM"]) },
-    phone: text(row, ["TELNO", "TEL"]) || null, operatingLabel: text(row, ["OPER_SE_NM"]) || null, isOpen: true
+    async fetchParkingLots(key: string): Promise<SeoulParkingFetchResult> {
+      const normalizedKey = key.trim();
+      if (!normalizedKey) throw new Error("Seoul API key missing");
+      const cached = cache.get(normalizedKey);
+      if (cached && cached.until > now()) return cached.value;
+      const active = inFlight.get(normalizedKey);
+      if (active) return active;
+      const request = load(normalizedKey)
+        .then((value) => {
+          cache.set(normalizedKey, { until: now() + CACHE_TTL_MS, value });
+          return value;
+        })
+        .finally(() => {
+          inFlight.delete(normalizedKey);
+        });
+      inFlight.set(normalizedKey, request);
+      return request;
+    },
   };
 }
 
-async function page(key: string, start: number, end: number) {
-  const response = await fetch(`http://openapi.seoul.go.kr:8088/${encodeURIComponent(key)}/json/GetParkingInfo/${start}/${end}/`, { cache: "no-store", signal: AbortSignal.timeout(8_000) });
-  if (!response.ok) throw new Error(`Seoul API ${response.status}`);
-  const body = await response.json() as { GetParkingInfo?: { list_total_count?: number; row?: Array<Record<string, unknown>>; RESULT?: { CODE?: string; MESSAGE?: string } } };
-  if (!body.GetParkingInfo) throw new Error("Unexpected Seoul API response");
-  if (body.GetParkingInfo.RESULT?.CODE && body.GetParkingInfo.RESULT.CODE !== "INFO-000") throw new Error(body.GetParkingInfo.RESULT.MESSAGE || body.GetParkingInfo.RESULT.CODE);
-  return body.GetParkingInfo;
-}
+const defaultClient = createSeoulParkingClient();
 
 export async function fetchSeoulParkingLots(): Promise<{ lots: ParkingLot[]; notice: string }> {
-  if (cache && cache.until > Date.now()) return { lots: cache.lots, notice: cache.notice };
   const key = process.env.SEOUL_OPEN_API_KEY;
   if (!key) throw new Error("SEOUL_OPEN_API_KEY missing");
-  const firstPage = await page(key, 1, 1_000);
-  const rows = [...(firstPage.row ?? [])];
-  const total = Math.min(firstPage.list_total_count ?? rows.length, 5_000);
-  for (let start = 1_001; start <= total; start += 1_000) rows.push(...((await page(key, start, Math.min(start + 999, total))).row ?? []));
-  const lots = rows.map(normalize).filter((lot): lot is ParkingLot => lot !== null);
-  if (!lots.length) throw new Error("No valid parking rows");
-  const notice = `서울시 주차정보 ${lots.length.toLocaleString("ko-KR")}곳의 최신 수집값입니다. 현장보다 지연될 수 있습니다.`;
-  cache = { until: Date.now() + 4 * 60_000, lots, notice };
-  return { lots, notice };
+  const result = await defaultClient.fetchParkingLots(key);
+  return { lots: result.lots, notice: result.notice };
 }

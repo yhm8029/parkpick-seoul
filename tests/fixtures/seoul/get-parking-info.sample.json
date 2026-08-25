@@ -1,0 +1,96 @@
+{
+  "GetParkingInfo": {
+    "list_total_count": 5,
+    "RESULT": {
+      "CODE": "INFO-000",
+      "MESSAGE": "정상 처리되었습니다"
+    },
+    "row": [
+      {
+        "PKLT_CD": "LIVE-A",
+        "PKLT_NM": "ParkA Realtime",
+        "ADDR": "Seoul Realtime Address A",
+        "TELNO": "02-1000-0001",
+        "TPKCT": 120,
+        "NOW_PRK_VHCL_CNT": 30,
+        "NOW_PRK_VHCL_UPDT_TM": "2026-08-25 09:30:00",
+        "PAY_YN": "Y",
+        "BSC_PRK_HR": 30,
+        "BSC_PRK_CRG": 1000,
+        "ADD_PRK_HR": 10,
+        "ADD_PRK_CRG": 500,
+        "DAY_MAX_CRG": 18000,
+        "PRK_STTS_YN": "1",
+        "OPER_SE_NM": "24시간"
+      },
+      {
+        "PKLT_CD": "LIVE-B",
+        "PKLT_NM": "ParkB Realtime",
+        "ADDR": "Seoul Realtime Address B",
+        "TELNO": "02-1000-0002",
+        "TPKCT": 60,
+        "NOW_PRK_VHCL_CNT": 15,
+        "NOW_PRK_VHCL_UPDT_TM": "2026-08-25 09:30:00",
+        "PAY_YN": "N",
+        "BSC_PRK_HR": 0,
+        "BSC_PRK_CRG": 0,
+        "ADD_PRK_HR": 0,
+        "ADD_PRK_CRG": 0,
+        "DAY_MAX_CRG": 0,
+        "PRK_STTS_YN": "1",
+        "OPER_SE_NM": "주말"
+      },
+      {
+        "PKLT_CD": "LIVE-ZERO",
+        "PKLT_NM": "ParkZero Realtime",
+        "ADDR": "Seoul Realtime Address Zero",
+        "TELNO": "02-1000-0003",
+        "TPKCT": 40,
+        "NOW_PRK_VHCL_CNT": 0,
+        "NOW_PRK_VHCL_UPDT_TM": "2026-08-25 09:30:00",
+        "PAY_YN": "Y",
+        "BSC_PRK_HR": 30,
+        "BSC_PRK_CRG": 500,
+        "ADD_PRK_HR": 10,
+        "ADD_PRK_CRG": 500,
+        "DAY_MAX_CRG": 24000,
+        "PRK_STTS_YN": "1",
+        "OPER_SE_NM": "평일 09:00~18:00"
+      },
+      {
+        "PKLT_CD": "LIVE-ORPHAN",
+        "PKLT_NM": "Orphan Realtime",
+        "ADDR": "Seoul Realtime Address Orphan",
+        "TELNO": "02-1000-0004",
+        "TPKCT": 80,
+        "NOW_PRK_VHCL_CNT": 20,
+        "NOW_PRK_VHCL_UPDT_TM": "2026-08-25 09:30:00",
+        "PAY_YN": "Y",
+        "BSC_PRK_HR": 30,
+        "BSC_PRK_CRG": 800,
+        "ADD_PRK_HR": 10,
+        "ADD_PRK_CRG": 400,
+        "DAY_MAX_CRG": 16000,
+        "PRK_STTS_YN": "1",
+        "OPER_SE_NM": "24시간"
+      },
+      {
+        "PKLT_CD": "",
+        "PKLT_NM": "Empty Code",
+        "ADDR": "Seoul Realtime Address Empty",
+        "TELNO": "02-1000-0005",
+        "TPKCT": 50,
+        "NOW_PRK_VHCL_CNT": 5,
+        "NOW_PRK_VHCL_UPDT_TM": "2026-08-25 09:30:00",
+        "PAY_YN": "Y",
+        "BSC_PRK_HR": 30,
+        "BSC_PRK_CRG": 800,
+        "ADD_PRK_HR": 10,
+        "ADD_PRK_CRG": 400,
+        "DAY_MAX_CRG": 12000,
+        "PRK_STTS_YN": "1",
+        "OPER_SE_NM": "24시간"
+      }
+    ]
+  }
+}

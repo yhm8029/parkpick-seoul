@@ -1,0 +1,74 @@
+{
+  "GetParkInfo": {
+    "list_total_count": 7,
+    "RESULT": {
+      "CODE": "INFO-000",
+      "MESSAGE": "정상 처리되었습니다"
+    },
+    "row": [
+      {
+        "PKLT_CD": "LIVE-A",
+        "PKLT_NM": "ParkA",
+        "ADDR": "Seoul Test Address A",
+        "LAT": 37.5012,
+        "LOT": 127.0311,
+        "TPKCT": 120,
+        "TELNO": "02-0000-0001"
+      },
+      {
+        "PKLT_CD": "LIVE-B",
+        "PKLT_NM": "ParkB",
+        "ADDR": "Seoul Test Address B",
+        "LAT": 37.5510,
+        "LOT": 126.9901,
+        "TPKCT": 60,
+        "TELNO": "02-0000-0002"
+      },
+      {
+        "PKLT_CD": "LIVE-C",
+        "PKLT_NM": "ParkC",
+        "ADDR": "Seoul Test Address C",
+        "LAT": 37.5644,
+        "LOT": 127.0092,
+        "TPKCT": 200,
+        "TELNO": "02-0000-0003"
+      },
+      {
+        "PKLT_CD": "LIVE-ZERO",
+        "PKLT_NM": "ParkZero",
+        "ADDR": "Seoul Test Address Zero",
+        "LAT": 37.5700,
+        "LOT": 126.9800,
+        "TPKCT": 40,
+        "TELNO": "02-0000-0004"
+      },
+      {
+        "PKLT_CD": "LIVE-NULL",
+        "PKLT_NM": "ParkOrigin",
+        "ADDR": "Seoul Test Address Null",
+        "LAT": 0,
+        "LOT": 0,
+        "TPKCT": 0,
+        "TELNO": ""
+      },
+      {
+        "PKLT_CD": "LIVE-DUP",
+        "PKLT_NM": "ParkDupFirst",
+        "ADDR": "Seoul Test Address Dup First",
+        "LAT": 37.6000,
+        "LOT": 127.0500,
+        "TPKCT": 100,
+        "TELNO": "02-0000-0005"
+      },
+      {
+        "PKLT_CD": "LIVE-DUP",
+        "PKLT_NM": "ParkDupSecond",
+        "ADDR": "Seoul Test Address Dup Second",
+        "LAT": 37.5500,
+        "LOT": 127.0400,
+        "TPKCT": 100,
+        "TELNO": "02-0000-0006"
+      }
+    ]
+  }
+}
