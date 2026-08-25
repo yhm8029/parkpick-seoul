@@ -60,7 +60,7 @@ export function AppShell() {
       if (!response.ok || !payload || !Array.isArray(payload.recommendations)) throw new Error("추천 결과를 불러오지 못했습니다.");
       if (payload.recommendations.length === 0) throw new Error("조건에 맞는 추천 주차장을 찾지 못했습니다.");
       if (requestControllerRef.current !== controller || controller.signal.aborted) return;
-      setResult(payload); setActiveId(payload.recommendations[0]?.id ?? null); setMobileView("map");
+      setResult(payload); setActiveId(payload.recommendations[0]?.id ?? null); setMobileView("list");
     } catch (reason) {
       if (controller.signal.aborted) return;
       setError(reason instanceof Error && reason.message === "조건에 맞는 추천 주차장을 찾지 못했습니다." ? reason.message : "추천 결과를 불러오지 못했습니다.");

@@ -167,4 +167,14 @@ describe("AppShell recommendation results", () => {
     expect(screen.queryByRole("heading", { name: "코엑스 주변 추천" })).toBeNull();
     expect((screen.getByLabelText("목적지 검색") as HTMLInputElement).value).toBe("강남역");
   });
+
+  it("selects the list view after every successful recommendation", async () => {
+    const user = await renderReadyApp();
+    await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
+
+    const listButton = await screen.findByRole("button", { name: "목록" });
+    const mapButton = screen.getByRole("button", { name: "지도" });
+    expect(listButton.className).toContain("is-active");
+    expect(mapButton.className).not.toContain("is-active");
+  });
 });
