@@ -70,15 +70,39 @@ export function MapPanel({ origin, destination, recommendations, activeId, onSel
       await loadNaverMapSdk(key);
       if (cancelled || !window.naver?.maps || !containerRef.current) return;
       const maps = window.naver.maps; containerRef.current.replaceChildren();
-      const map = new maps.Map(containerRef.current, { center: new maps.LatLng(destination.latitude, destination.longitude), zoom: 14, zoomControl: true });
-      const bounds = new maps.LatLngBounds();
+      const center = new maps.LatLng(destination.latitude, destination.longitude);
+      const map = new maps.Map(containerRef.current, { center, zoom: 14, zoomControl: true });
+      // NAVER’s LatLngBounds requires two LatLng arguments (southwest, northeast);
+      // calling it with no args leaves the bounds undefined and the unconditional
+      // fitBounds that follows can zoom a degenerate rect straight to z=21.
+      const latitudes = points.map(point => point.latitude);
+      const longitudes = points.map(point => point.longitude);
+      const minLat = Math.min(...latitudes);
+      const maxLat = Math.max(...latitudes);
+      const minLng = Math.min(...longitudes);
+      const maxLng = Math.max(...longitudes);
+      const sw = new maps.LatLng(minLat, minLng);
+      const ne = new maps.LatLng(maxLat, maxLng);
+      const isDegenerate = points.length <= 1 || (maxLat === minLat && maxLng === minLng);
+      const bounds = new maps.LatLngBounds(sw, ne);
       points.forEach(point => {
-        const position = new maps.LatLng(point.latitude, point.longitude); bounds.extend(position);
+        const position = new maps.LatLng(point.latitude, point.longitude);
         const content = `<div class="map-marker map-marker--${point.kind}${activeId === point.id ? " is-active" : ""}">${point.kind === "parking" ? point.rank : point.kind === "origin" ? "출" : "도"}</div>`;
         const marker = new maps.Marker({ position, map, title: point.label, icon: { content } });
         if (point.kind === "parking") maps.Event.addListener(marker, "click", () => onSelect?.(point.id));
       });
-      map.fitBounds(bounds); setState("ready");
+      if (isDegenerate) {
+        // A single point collapses the bounds to a zero-area rect, and NAVER’s
+        // fitBounds would zoom straight to the maximum. Keep a useful street
+        // level zoom instead so the camera does not blank out.
+        map.setCenter(center);
+        map.setZoom(15);
+      } else {
+        // User manual zoom (via the map’s zoomControl) is intentionally left
+        // unrestricted; this cap only applies to the initial fitBounds call.
+        map.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40, maxZoom: 16 });
+      }
+      setState("ready");
     };
     (provider === "KAKAO" ? renderKakao() : renderNaver()).catch(error => { console.error(error); if (!cancelled) setState("error"); });
     return () => { cancelled = true; };

@@ -19,8 +19,24 @@ declare global {
     naver?: {
       maps: {
         LatLng: new (latitude: number, longitude: number) => unknown;
-        LatLngBounds: new () => { extend: (coordinate: unknown) => void };
-        Map: new (container: HTMLElement, options: Record<string, unknown>) => { fitBounds: (bounds: unknown) => void; setCenter: (coordinate: unknown) => void };
+        LatLngBounds: new (southwest: unknown, northeast: unknown) => { extend: (coordinate: unknown) => void };
+        Map: new (
+          container: HTMLElement,
+          options: Record<string, unknown>,
+        ) => {
+          fitBounds: (
+            bounds: unknown,
+            options?: {
+              top?: number;
+              right?: number;
+              bottom?: number;
+              left?: number;
+              maxZoom?: number;
+            },
+          ) => void;
+          setCenter: (coordinate: unknown) => void;
+          setZoom: (zoom: number) => void;
+        };
         Marker: new (options: Record<string, unknown>) => unknown;
         Event: { addListener: (target: unknown, event: string, listener: () => void) => void };
       };
