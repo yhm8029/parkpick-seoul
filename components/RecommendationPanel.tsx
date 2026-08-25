@@ -7,6 +7,8 @@ import { Button } from "@/components/Button";
 import { ParkingCard } from "@/components/ParkingCard";
 import type { RecommendationResponse } from "@/lib/types";
 
+import type { Place } from "@/lib/types";
+
 export interface RecommendationPanelProps {
   headingRef: RefObject<HTMLHeadingElement | null>;
   result: RecommendationResponse;
@@ -15,9 +17,12 @@ export interface RecommendationPanelProps {
   onSelect: (id: string) => void;
   onMobileViewChange: (view: "map" | "list") => void;
   onEdit: () => void;
+  appliedOrigin?: Place | null;
+  onCancel?: () => void;
 }
 
-export function RecommendationPanel({ headingRef, result, activeId, mobileView, onSelect, onMobileViewChange, onEdit }: RecommendationPanelProps) {
+export function RecommendationPanel({ headingRef, result, activeId, mobileView, onSelect, onMobileViewChange, onEdit, appliedOrigin, onCancel }: RecommendationPanelProps) {
+  const origin = appliedOrigin ?? null;
   return <section className="result-panel" aria-labelledby="recommendation-title">
     <div className="results-head">
       <div>
@@ -38,7 +43,7 @@ export function RecommendationPanel({ headingRef, result, activeId, mobileView, 
       <button type="button" className={mobileView === "map" ? "is-active" : ""} onClick={() => onMobileViewChange("map")}><Map size={16} /> 지도</button>
     </div>
     <div className="parking-list">
-      {result.recommendations.map(parking => <ParkingCard key={parking.id} parking={parking} active={parking.id === activeId} onSelect={() => onSelect(parking.id)} />)}
+      {result.recommendations.map(parking => origin ? <ParkingCard key={parking.id} origin={origin} parking={parking} active={parking.id === activeId} onSelect={() => onSelect(parking.id)} /> : null)}
     </div>
     <div className="disclaimer"><CircleAlert size={17} /><p><strong>추천은 주차면 예약이 아닙니다.</strong> 도착 전 2·3순위도 함께 확인하세요.</p></div>
   </section>;

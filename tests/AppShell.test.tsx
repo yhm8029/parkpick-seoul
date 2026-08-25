@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -12,7 +12,18 @@ vi.mock("@/hooks/use-geolocation", () => ({
   })
 }));
 
-vi.mock("@/components/MapPanel", () => ({ MapPanel: () => null }));
+vi.mock("@/components/MapPanel", () => ({
+  MapPanel: (props: { origin: unknown; destination: unknown; recommendations: unknown[]; activeId: string | null; onSelect?: (id: string) => void }) => (
+    <div
+      data-testid="map-panel"
+      data-origin={props.origin ? "set" : "none"}
+      data-destination={props.destination ? "set" : "none"}
+      data-active={props.activeId ?? ""}
+    >
+      <span data-testid="map-recommendation-count">{Array.isArray(props.recommendations) ? props.recommendations.length : 0}</span>
+    </div>
+  )
+}));
 vi.mock("@/components/NavigationButtons", () => ({ NavigationButtons: () => null }));
 
 import { AppShell } from "@/components/AppShell";
@@ -76,7 +87,7 @@ const response: RecommendationResponse = {
     source: "DEMO"
   },
   distanceMode: "AUTO",
-  effectiveDistanceMeters: 1_000,
+  effectiveDistanceMeters: 450,
   recommendations: [
     recommendation(1, "주차장 1"),
     recommendation(2, "주차장 2"),
@@ -113,28 +124,40 @@ describe("AppShell recommendation results", () => {
     expect(screen.getByRole("heading", { name: "주차장 3" })).toBeTruthy();
   });
 
-  it("returns to the populated planner when conditions are edited", async () => {
+  it("returns to the populated planner with retained map when conditions are edited", async () => {
     const user = await renderReadyApp();
     await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
-    await screen.findByRole("heading", { name: "코엑스 주변 추천" });
+    const mapNode = await screen.findByTestId("map-panel");
+    expect(screen.getByTestId("map-recommendation-count").textContent).toBe("3");
 
     await user.click(screen.getByRole("button", { name: "조건 변경" }));
 
     expect(screen.getByRole("heading", { name: "방문 계획 입력" })).toBeTruthy();
     expect((screen.getByLabelText("목적지 검색") as HTMLInputElement).value).toBe("코엑스");
     expect(screen.queryByRole("heading", { name: "주차장 1" })).toBeNull();
+    expect(screen.getByTestId("map-panel")).toBe(mapNode);
+    expect(screen.getByTestId("map-recommendation-count").textContent).toBe("3");
   });
 
-  it.each([
-    [{ ...response, recommendations: [] }, "조건에 맞는 추천 주차장을 찾지 못했습니다."],
-    [{ ...response, recommendations: null } as unknown as RecommendationResponse, "추천 결과를 불러오지 못했습니다."]
-  ])("keeps the planner visible for invalid recommendations", async (payload, message) => {
-    const user = await renderReadyApp(payload);
+  it("keeps the planner and clears recommendations on a valid empty success", async () => {
+    const empty: RecommendationResponse = { ...response, recommendations: [] };
+    const user = await renderReadyApp(empty);
 
     await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
 
-    expect(await screen.findByText(message)).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "방문 계획 입력" })).toBeTruthy();
+    await screen.findByRole("heading", { name: "방문 계획 입력" });
+    expect(screen.getByRole("status").textContent).toContain("선택한 거리 안에서 공영주차장을 찾지 못했습니다.");
+    expect(screen.getByTestId("map-recommendation-count").textContent).toBe("0");
+  });
+
+  it("keeps the planner visible for invalid recommendation payloads", async () => {
+    const broken = { ...response, recommendations: null } as unknown as RecommendationResponse;
+    const user = await renderReadyApp(broken);
+
+    await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
+
+    await screen.findByRole("heading", { name: "방문 계획 입력" });
+    expect(screen.getByRole("alert").textContent).toContain("추천 결과를 불러오지 못했습니다.");
   });
 
   it("ignores an aborted response and releases loading when an input changes", async () => {
@@ -168,6 +191,7 @@ describe("AppShell recommendation results", () => {
 
     expect(screen.queryByRole("heading", { name: "코엑스 주변 추천" })).toBeNull();
     expect((screen.getByLabelText("목적지 검색") as HTMLInputElement).value).toBe("강남역");
+    expect(screen.getByTestId("map-recommendation-count").textContent).toBe("0");
   });
 
   it("selects the list view after every successful recommendation", async () => {
@@ -189,5 +213,167 @@ describe("AppShell recommendation results", () => {
     await vi.waitFor(() => {
       expect(document.activeElement?.id).toBe("recommendation-title");
     });
+  });
+
+  it("initializes manual distance from the last response and resubmits a MANUAL body", async () => {
+    const user = await renderReadyApp();
+    await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
+    const mapNode = await screen.findByTestId("map-panel");
+    expect(screen.getByTestId("map-recommendation-count").textContent).toBe("3");
+
+    await user.click(screen.getByRole("button", { name: "조건 변경" }));
+    await user.click(screen.getByRole("button", { name: "MANUAL" }));
+    const slider = screen.getByLabelText("최대 거리") as HTMLInputElement;
+    expect(slider.value).toBe("450");
+    expect(slider).toHaveProperty("step", "50");
+    expect(slider).toHaveProperty("min", "50");
+    expect(slider).toHaveProperty("max", "1000");
+
+    fireEvent.change(slider, { target: { value: "500" } });
+    expect(slider.value).toBe("500");
+    expect(screen.getByTestId("map-panel")).toBe(mapNode);
+    expect(screen.getByTestId("map-recommendation-count").textContent).toBe("3");
+
+    const fetchMock = vi.mocked(fetch);
+    await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
+    await screen.findByRole("heading", { name: "코엑스 주변 추천" });
+
+    expect(fetchMock.mock.calls).toHaveLength(2);
+    const secondBody = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body));
+    expect(secondBody).toMatchObject({ distanceMode: "MANUAL", maxDistanceMeters: 500 });
+    expect(Object.prototype.hasOwnProperty.call(secondBody, "maxWalkMinutes")).toBe(false);
+  });
+
+  it("omits maxDistanceMeters on an AUTO submit", async () => {
+    const user = await renderReadyApp();
+    const fetchMock = vi.mocked(fetch);
+    await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
+    await screen.findByRole("heading", { name: "코엑스 주변 추천" });
+
+    const firstBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    expect(firstBody.distanceMode).toBe("AUTO");
+    expect(Object.prototype.hasOwnProperty.call(firstBody, "maxDistanceMeters")).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(firstBody, "maxWalkMinutes")).toBe(false);
+  });
+
+  it("keeps prior recommendations and shows the retained notice after a failed submit", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn();
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => response
+    });
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ error: "down" })
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<AppShell />);
+    await user.click(screen.getByRole("button", { name: /예시 채우기/ }));
+    await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
+    const mapNode = await screen.findByTestId("map-panel");
+    expect(screen.getByTestId("map-recommendation-count").textContent).toBe("3");
+
+    await user.click(screen.getByRole("button", { name: "조건 변경" }));
+    await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
+
+    await screen.findByRole("heading", { name: "방문 계획 입력" });
+    expect(screen.getByRole("status").textContent).toContain("이전 추천 결과를 유지");
+    expect(screen.getByTestId("map-panel")).toBe(mapNode);
+    expect(screen.getByTestId("map-recommendation-count").textContent).toBe("3");
+    expect(screen.getByRole("heading", { name: "방문 계획 입력" })).toBeTruthy();
+  });
+
+  it("ignores a superseded response resolved after a newer submit", async () => {
+    const user = userEvent.setup();
+    let resolveSuperseded!: (value: {
+      ok: boolean;
+      json: () => Promise<RecommendationResponse>;
+    }) => void;
+    const fetchMock = vi.fn();
+    fetchMock.mockImplementationOnce((_url: string, _init?: RequestInit) =>
+      new Promise<{ ok: boolean; json: () => Promise<RecommendationResponse> }>(resolve => {
+        resolveSuperseded = resolve;
+      })
+    );
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => response
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<AppShell />);
+    await user.click(screen.getByRole("button", { name: /예시 채우기/ }));
+
+    await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
+    await user.click(screen.getByRole("button", { name: "강남역" }));
+    await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
+    await screen.findByRole("heading", { name: "코엑스 주변 추천" });
+    expect(screen.getByTestId("map-recommendation-count").textContent).toBe("3");
+
+    await act(async () => {
+      resolveSuperseded({ ok: true, json: async () => response });
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByRole("heading", { name: "코엑스 주변 추천" })).toBeTruthy();
+    expect(screen.getByTestId("map-recommendation-count").textContent).toBe("3");
+  });
+
+  it("does not abort the in-flight request when the maximum-distance slider changes", async () => {
+    const user = userEvent.setup();
+    const signals: AbortSignal[] = [];
+    let pendingResolve!: (value: {
+      ok: boolean;
+      json: () => Promise<RecommendationResponse>;
+    }) => void;
+    const fetchMock = vi.fn().mockImplementationOnce((_url: string, init?: RequestInit) => {
+      signals.push(init?.signal as AbortSignal);
+      return new Promise<{
+        ok: boolean;
+        json: () => Promise<RecommendationResponse>;
+      }>(resolve => { pendingResolve = resolve; });
+    }).mockImplementation((_url: string, init?: RequestInit) => {
+      signals.push(init?.signal as AbortSignal);
+      return Promise.resolve({ ok: true, json: async () => response });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<AppShell />);
+    await user.click(screen.getByRole("button", { name: /예시 채우기/ }));
+    await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
+    await act(async () => {
+      pendingResolve({ ok: true, json: async () => response });
+      await Promise.resolve();
+    });
+    await screen.findByRole("heading", { name: "코엑스 주변 추천" });
+
+    await user.click(screen.getByRole("button", { name: "조건 변경" }));
+    await user.click(screen.getByRole("button", { name: "MANUAL" }));
+    const slider = screen.getByLabelText("최대 거리") as HTMLInputElement;
+    fireEvent.change(slider, { target: { value: "650" } });
+
+    expect(signals).toHaveLength(1);
+    expect(signals[0]?.aborted).toBe(false);
+
+    let secondResolve!: (value: {
+      ok: boolean;
+      json: () => Promise<RecommendationResponse>;
+    }) => void;
+    fetchMock.mockImplementationOnce((_url: string, init?: RequestInit) => {
+      signals.push(init?.signal as AbortSignal);
+      return new Promise<{
+        ok: boolean;
+        json: () => Promise<RecommendationResponse>;
+      }>(resolve => { secondResolve = resolve; });
+    });
+    await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
+    expect(signals).toHaveLength(2);
+    expect(signals[1]?.aborted).toBe(false);
+    fireEvent.change(slider, { target: { value: "750" } });
+    expect(signals[1]?.aborted).toBe(false);
+    await act(async () => {
+      secondResolve({ ok: true, json: async () => response });
+      await Promise.resolve();
+    });
+    expect(screen.getByTestId("map-recommendation-count").textContent).toBe("3");
   });
 });
