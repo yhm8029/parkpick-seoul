@@ -38,10 +38,11 @@
 
 - [ ] **Step 1: Add a sanitized fixture and failing adapter test**
 
-The fixture envelope must be `{ "result_state": "0000", "res_value": { "parking_list_count": 5, "parking_list": [...] } }` and contain:
+The fixture envelope must be `{ "result_state": "0000", "res_value": { "parking_list_count": 6, "parking_list": [...] } }` and contain:
 
 - one `NW` row with `capacity: "115"`, `cur_parking: "28"`, `que_status: "1"`, a current `cur_parking_time`, and valid `position_list[0].lat/lng`;
 - one `NS` row with valid coordinates but `que_status: "0"`;
+- one valid-coordinate public boundary row with numeric strings but malformed `que_status: "01"`, which must remain non-realtime;
 - one `BS` row, which must be filtered;
 - one `NW` tourist-bus-exclusive name, which must be filtered;
 - one `NW` row with invalid zero coordinates, which must be filtered.
@@ -415,4 +416,3 @@ At `http://127.0.0.1:3000`, search/select Gangnam Station, submit AUTO, and veri
 - [ ] **Step 4: Commit any test-led corrections and report evidence**
 
 If verification required changes, commit only those scoped changes with `fix:`. Record exact passing commands, Gangnam lot distances/data mode, and the final NAVER URL shape without exposing secrets.
-
