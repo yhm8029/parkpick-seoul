@@ -1,4 +1,4 @@
-import type { Coordinate, ParkingLot } from "@/lib/types";
+import type { Coordinate, ParkingLot, PublicParkingType } from "@/lib/types";
 import { numberFrom, parseSeoulDate } from "@/lib/utils";
 
 export interface NearbyParkingClient {
@@ -23,7 +23,7 @@ const SEOUL_LAT_MIN = 37;
 const SEOUL_LAT_MAX = 38;
 const SEOUL_LNG_MIN = 126;
 const SEOUL_LNG_MAX = 128;
-const ALLOWED_PUBLIC_TYPES = new Set(["NW", "NS"]);
+const ALLOWED_PUBLIC_TYPES = new Set<PublicParkingType>(["NW", "NS", "BP"]);
 
 type ParkingRow = Record<string, unknown>;
 
@@ -35,6 +35,10 @@ function text(row: ParkingRow, key: string): string {
 
 function numeric(row: ParkingRow, key: string): number | null {
   return numberFrom(row[key]);
+}
+
+function isPublicParkingType(value: string): value is PublicParkingType {
+  return ALLOWED_PUBLIC_TYPES.has(value as PublicParkingType);
 }
 
 function normalizeRange(rangeMeters: number): number {
@@ -88,7 +92,7 @@ function normalizeRow(row: ParkingRow, nowMs: number): ParkingLot | null {
   const parkingCode = text(row, "parking_code");
   if (!parkingCode) return null;
   const parkingType = text(row, "parking_type");
-  if (!ALLOWED_PUBLIC_TYPES.has(parkingType)) return null;
+  if (!isPublicParkingType(parkingType)) return null;
   const coordinate = pickCoordinate(row);
   if (!coordinate) return null;
   const capacity = numeric(row, "capacity");
@@ -112,6 +116,7 @@ function normalizeRow(row: ParkingRow, nowMs: number): ParkingLot | null {
     id: `seoul-portal-${parkingCode}`,
     sourceId: parkingCode,
     source: "SEOUL_PARKING_PORTAL",
+    publicParkingType: parkingType,
     name: name || parkingCode,
     address: address || "주소 정보 없음",
     latitude: coordinate.latitude,

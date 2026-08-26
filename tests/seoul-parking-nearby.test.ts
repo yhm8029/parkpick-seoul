@@ -30,6 +30,53 @@ function makeFetchMock() {
 }
 
 describe("createNearbyParkingClient", () => {
+  it("includes public-attached BP lots while excluding private BS and NP lots", async () => {
+    const parkingRows = [
+      {
+        parking_code: "PUBLIC-BP",
+        parking_type: "BP",
+        parking_name: "서초구청 주차장",
+        new_juso: "서울특별시 서초구 남부순환로 2584",
+        capacity: 147,
+        que_status: "0",
+        position_list: [{ lat: 37.483569, lng: 127.032598 }],
+      },
+      {
+        parking_code: "PRIVATE-BS",
+        parking_type: "BS",
+        parking_name: "롯데백화점 주차장",
+        capacity: 100,
+        que_status: "0",
+        position_list: [{ lat: 37.4836, lng: 127.0326 }],
+      },
+      {
+        parking_code: "PRIVATE-NP",
+        parking_type: "NP",
+        parking_name: "민영 노외주차장",
+        capacity: 50,
+        que_status: "0",
+        position_list: [{ lat: 37.4837, lng: 127.0327 }],
+      },
+    ];
+    const fetchMock = vi.fn(async () =>
+      buildJsonResponse({
+        result_state: "0000",
+        res_value: { parking_list_count: parkingRows.length, parking_list: parkingRows },
+      }),
+    );
+    const client = createNearbyParkingClient({
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      now: () => TEST_NOW_MS,
+    });
+
+    const result = await client.fetchNearby(DESTINATION, 1_000);
+
+    expect(result.lots.map((lot) => lot.sourceId)).toEqual(["PUBLIC-BP"]);
+    expect(result.lots[0]?.publicParkingType).toBe("BP");
+    expect(result.lots[0]?.realtimeSupported).toBe(false);
+    expect(result.lots[0]?.availableSpaces).toBeNull();
+  });
+
   it("POSTs the six required fields, normalizes live NW rows, and marks unsupported NS rows", async () => {
     const { fetchMock, calls } = makeFetchMock();
     const client = createNearbyParkingClient({

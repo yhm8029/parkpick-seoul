@@ -4,6 +4,7 @@ export type DataMode = "LIVE" | "FALLBACK" | "DEMO";
 export type RealtimeStatus = "LIVE" | "DELAYED" | "STALE" | "OFFLINE" | "UNKNOWN";
 export type AvailabilityRisk = "LOW" | "MEDIUM" | "HIGH" | "UNKNOWN";
 export type ConfidenceLevel = "HIGH" | "MEDIUM" | "LOW";
+export type PublicParkingType = "NW" | "NS" | "BP";
 
 export interface Coordinate {
   latitude: number;
@@ -31,6 +32,7 @@ export interface ParkingLot extends Coordinate {
   id: string;
   sourceId: string;
   source: "SEOUL_OPEN_DATA" | "SEOUL_PARKING_PORTAL" | "DEMO";
+  publicParkingType?: PublicParkingType;
   name: string;
   address: string;
   capacity: number;
