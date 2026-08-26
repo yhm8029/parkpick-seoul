@@ -99,4 +99,44 @@ describe("fetchNaverDrivingRoutes", () => {
     expect(warn).toHaveBeenCalledWith("NAVER Directions failed", { category: "provider-code", code: 3 });
     expect(JSON.stringify(warn.mock.calls)).not.toContain("server-secret");
   });
+
+  it("caps ten candidates and aggregate route geometry", async () => {
+    vi.stubEnv("NAVER_MAP_NCP_KEY_ID", "server-id");
+    vi.stubEnv("NAVER_MAP_NCP_CLIENT_SECRET", "server-secret");
+    const path = Array.from({ length: 2_500 }, (_, index) =>
+      [127.1 + index * 0.0001, 37.5 + index * 0.0001],
+    );
+    const section = Array.from({ length: 300 }, () => ({
+      pointIndex: 0,
+      pointCount: 2,
+      congestion: 1,
+    }));
+    let releaseFetch!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      releaseFetch = resolve;
+    });
+    const fetchMock = vi.fn().mockImplementation(async () => {
+      await gate;
+      return new Response(JSON.stringify({
+        code: 0,
+        route: { trafast: [{ summary: { duration: 600_000, distance: 5_000 }, path, section }] },
+      }), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const routesPromise = fetchNaverDrivingRoutes(
+      { latitude: 37.4, longitude: 127 },
+      Array.from({ length: 11 }, (_, index) => lot(`p${index + 1}`)),
+    );
+
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(10));
+    releaseFetch();
+    const routes = await routesPromise;
+
+    expect(fetchMock).toHaveBeenCalledTimes(10);
+    expect(routes).toHaveLength(10);
+    expect(routes.reduce((sum, route) => sum + (route.path?.length ?? 0), 0)).toBe(25_000);
+    expect(routes.reduce((sum, route) => sum + (route.congestionSections?.length ?? 0), 0)).toBeLessThanOrEqual(2_560);
+    expect(new TextEncoder().encode(JSON.stringify(routes)).byteLength).toBeLessThan(2 * 1024 * 1024);
+  });
 });

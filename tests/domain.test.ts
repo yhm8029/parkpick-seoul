@@ -52,6 +52,11 @@ describe("fees", () => {
 });
 
 describe("recommendations", () => {
+  const elevenLots = (): ParkingLot[] =>
+    Array.from({ length: 11 }, (_, index) =>
+      lot(`lot-${index + 1}`, 20, 37.501 + (index === 10 ? 0.0046 : (index + 1) * 0.0004), 127.021),
+    );
+
   it("returns ranked results with the new envelope for AUTO requests", () => {
     const auto = recommendParking(
       [lot("a", 50), lot("b", 10, 37.503), lot("c", 2, 37.504), lot("d", 80, 37.52)],
@@ -81,15 +86,28 @@ describe("recommendations", () => {
     expect(manual.recommendations[0].walkDistanceMeters).toBeLessThanOrEqual(300);
   });
 
-  it("selects the three nearest AUTO candidates before scoring", () => {
+  it("caps MANUAL recommendations at ten when more candidates are within range", () => {
+    const manual = recommendParking(
+      elevenLots(),
+      { ...requestBase, distanceMode: "MANUAL", maxDistanceMeters: 1_000 },
+      [],
+      now,
+    );
+    expect(manual.recommendations).toHaveLength(10);
+    expect(manual.recommendations.map(item => item.rank)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  });
+
+  it("selects the ten nearest AUTO candidates before scoring", () => {
     const automatic = recommendParking(
-      [lot("a", 1, 37.5012), lot("b", 1, 37.502), lot("c", 1, 37.503), lot("d", 99, 37.504)],
+      elevenLots(),
       { ...requestBase, distanceMode: "AUTO" },
       [],
       now,
     );
-    expect(automatic.recommendations.map(item => item.id).sort()).toEqual(["a", "b", "c"]);
-    expect(automatic.effectiveDistanceMeters).toBeGreaterThan(0);
+    expect(automatic.recommendations).toHaveLength(10);
+    expect(automatic.recommendations.map(item => item.rank)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(automatic.recommendations.map(item => item.id)).not.toContain("lot-11");
+    expect(automatic.effectiveDistanceMeters).toBe(450);
     expect(automatic.effectiveDistanceMeters! % 50).toBe(0);
   });
 

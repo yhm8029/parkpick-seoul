@@ -7,6 +7,8 @@ import type {
 
 const ENDPOINT = "https://maps.apigw.ntruss.com/map-direction/v1/driving";
 const MAX_PATH_POINTS = 2_500;
+const MAX_ROUTE_CANDIDATES = 10;
+const MAX_CONGESTION_SECTIONS = 256;
 
 function finitePositive(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
@@ -36,7 +38,7 @@ function normalizeSections(value: unknown): RouteCongestionSection[] | undefined
       ? [{ pointIndex, pointCount, congestion } satisfies RouteCongestionSection]
       : [];
   });
-  return sections.length ? sections : undefined;
+  return sections.length ? sections.slice(0, MAX_CONGESTION_SECTIONS) : undefined;
 }
 
 async function fetchOne(origin: Coordinate, lot: ParkingLot): Promise<RouteEstimate | null> {
@@ -98,6 +100,6 @@ export async function fetchNaverDrivingRoutes(
   origin: Coordinate,
   lots: ParkingLot[],
 ): Promise<RouteEstimate[]> {
-  const routes = await Promise.all(lots.slice(0, 3).map((lot) => fetchOne(origin, lot)));
+  const routes = await Promise.all(lots.slice(0, MAX_ROUTE_CANDIDATES).map((lot) => fetchOne(origin, lot)));
   return routes.filter((route): route is RouteEstimate => route !== null);
 }

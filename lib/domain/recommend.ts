@@ -17,6 +17,7 @@ const MANUAL_MIN_METERS = 50;
 const MANUAL_MAX_METERS = 1_000;
 const MANUAL_STEP_METERS = 50;
 const ROUND_TO_METERS = 50;
+const MAX_RECOMMENDATIONS = 10;
 
 export interface RankedParkingResult {
   recommendations: ParkingRecommendation[];
@@ -88,18 +89,18 @@ export function recommendParking(lots: ParkingLot[], request: RecommendationRequ
   let rankedCandidates: ParkingRecommendation[];
   let effectiveDistanceMeters: number | null;
   if (isAuto) {
-    const nearestThree = measured
+    const nearestCandidates = measured
       .filter(item => item.distance <= AUTO_HARD_LIMIT_METERS)
       .sort((a, b) => a.distance - b.distance || (a.lot.sourceId < b.lot.sourceId ? -1 : a.lot.sourceId > b.lot.sourceId ? 1 : 0))
-      .slice(0, 3);
-    if (nearestThree.length === 0) {
+      .slice(0, MAX_RECOMMENDATIONS);
+    if (nearestCandidates.length === 0) {
       return { recommendations: [], effectiveDistanceMeters: null };
     }
-    const farthestExact = nearestThree[nearestThree.length - 1].distance;
+    const farthestExact = nearestCandidates[nearestCandidates.length - 1].distance;
     effectiveDistanceMeters = roundUpTo(farthestExact, ROUND_TO_METERS);
-    rankedCandidates = scoreAndRank(nearestThree, request, routeMap, now);
+    rankedCandidates = scoreAndRank(nearestCandidates, request, routeMap, now);
   } else {
-    rankedCandidates = scoreAndRank(measured, request, routeMap, now).slice(0, 3);
+    rankedCandidates = scoreAndRank(measured, request, routeMap, now).slice(0, MAX_RECOMMENDATIONS);
     effectiveDistanceMeters = manualLimit;
   }
 
