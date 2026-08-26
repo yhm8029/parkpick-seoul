@@ -11,7 +11,7 @@ GPS 출발지와 목적지를 기준으로 서울 공영주차장의 빈자리, 
 - 사용자가 버튼을 누른 뒤에만 GPS 권한 요청
 - 권한 허용·거부·시간초과·미지원·비보안 연결 상태 처리
 - GPS 없이 출발지를 직접 검색하는 폴백
-- 목적지 검색과 API 키가 없는 데모 검색
+- 네이버 API HUB 지역검색 기반 출발지·목적지 검색과 API 키가 없는 데모 검색
 - 서울시 `GetParkingInfo` 어댑터와 데모 데이터 폴백
 - 체류시간 기준 예상 주차요금
 - 빈자리·도보·요금·자동차 이동·데이터 신뢰도 추천점수
@@ -46,6 +46,8 @@ API 키가 없어도 데모 모드로 모든 입력·추천·지도 미리보기
 | `NEXT_PUBLIC_NAVER_MAP_NCP_KEY_ID` | 웹앱 안의 네이버 Web Dynamic Map |
 | `NAVER_MAP_NCP_KEY_ID` | 서버 전용 네이버 Geocoding·Directions 5 Client ID |
 | `NAVER_MAP_NCP_CLIENT_SECRET` | 서버 전용 네이버 Client Secret |
+| `NAVER_API_HUB_KEY_ID` | 서버 전용 네이버 API HUB 지역검색 Client ID |
+| `NAVER_API_HUB_KEY` | 서버 전용 네이버 API HUB 지역검색 Client Secret |
 | `NEXT_PUBLIC_NAVER_APP_NAME` | 네이버지도 앱 URL Scheme 필수 `appname`; 배포 웹 URL 권장 |
 | `VERCEL_ANALYTICS_TOKEN` | 선택: TODAY / 30 DAYS 집계 API 토큰 |
 | `VERCEL_ANALYTICS_TEAM_ID` | 선택: Vercel 팀 ID |

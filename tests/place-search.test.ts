@@ -56,10 +56,14 @@ describe("Naver NCP geocoding adapter", () => {
     vi.stubEnv("KAKAO_REST_API_KEY", "dormant-kakao-key");
     vi.stubEnv("NAVER_MAP_NCP_KEY_ID", "naver-id");
     vi.stubEnv("NAVER_MAP_NCP_CLIENT_SECRET", "naver-secret");
-    const fetchSpy = vi.fn(async (_input: string | URL, _init?: RequestInit) => new Response(JSON.stringify({
-      status: "OK",
-      addresses: [{ x: "127.0592", y: "37.5117", roadAddress: "서울 강남구 영동대로 513" }],
-    }), { status: 200 }));
+    const fetchSpy = vi.fn(async (input: string | URL, init?: RequestInit) => {
+      void input;
+      void init;
+      return new Response(JSON.stringify({
+        status: "OK",
+        addresses: [{ x: "127.0592", y: "37.5117", roadAddress: "서울 강남구 영동대로 513" }],
+      }), { status: 200 });
+    });
     vi.stubGlobal("fetch", fetchSpy as unknown as typeof fetch);
     try {
       const result = await searchPlaces("코엑스");
@@ -69,6 +73,40 @@ describe("Naver NCP geocoding adapter", () => {
       expect(result.mode).toBe("LIVE");
       expect(result.places[0]?.source).toBe("NAVER");
       expect(result.notice).toContain("네이버");
+    } finally {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("prefers NAVER API HUB local search over geocoding", async () => {
+    vi.stubEnv("NAVER_API_HUB_KEY_ID", "hub-id");
+    vi.stubEnv("NAVER_API_HUB_KEY", "hub-key");
+    vi.stubEnv("NAVER_MAP_NCP_KEY_ID", "map-id");
+    vi.stubEnv("NAVER_MAP_NCP_CLIENT_SECRET", "map-secret");
+    const fetchSpy = vi.fn(async (input: string | URL, init?: RequestInit) => {
+      void input;
+      void init;
+      return new Response(JSON.stringify({
+        items: [{
+          title: "<b>홍대입구역</b> 공항철도",
+          category: "교통,운수>지하철,전철",
+          roadAddress: "서울 마포구 양화로 188",
+          mapx: "1269265991",
+          mapy: "375577188",
+        }],
+      }), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchSpy as unknown as typeof fetch);
+
+    try {
+      const result = await searchPlaces("홍대입구역");
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(String(fetchSpy.mock.calls[0]?.[0])).toContain("naverapihub.apigw.ntruss.com/search/v1/local");
+      expect(String(fetchSpy.mock.calls[0]?.[0])).not.toContain("map-geocode");
+      expect(result.mode).toBe("LIVE");
+      expect(result.places[0]?.name).toBe("홍대입구역 공항철도");
+      expect(result.notice).toContain("지역검색");
     } finally {
       vi.unstubAllGlobals();
       vi.unstubAllEnvs();

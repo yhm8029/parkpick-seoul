@@ -1,4 +1,5 @@
 import { searchNaverAddresses } from "@/lib/api/naver-geocode";
+import { searchNaverLocalPlaces } from "@/lib/api/naver-local-search";
 import { DEMO_PLACES } from "@/lib/mock";
 import type { Place } from "@/lib/types";
 
@@ -14,6 +15,20 @@ export async function searchPlaces(query: string): Promise<{
   mode: "LIVE" | "DEMO";
   notice: string;
 }> {
+  const apiHubKeyId = process.env.NAVER_API_HUB_KEY_ID;
+  const apiHubKey = process.env.NAVER_API_HUB_KEY;
+  if (apiHubKeyId && apiHubKey) {
+    try {
+      const places = await searchNaverLocalPlaces(query.slice(0, 80), {
+        keyId: apiHubKeyId,
+        apiKey: apiHubKey,
+      });
+      if (places.length) return { places, mode: "LIVE", notice: "네이버 지역검색 결과입니다." };
+    } catch {
+      // Fall through to geocoding, then curated examples.
+    }
+  }
+
   const keyId = process.env.NAVER_MAP_NCP_KEY_ID;
   const clientSecret = process.env.NAVER_MAP_NCP_CLIENT_SECRET;
   if (keyId && clientSecret) {
