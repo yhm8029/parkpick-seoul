@@ -65,12 +65,14 @@ export function MapPanel({
   const destinationRef = useRef(destination);
   const activeIdRef = useRef(activeId);
   const onSelectRef = useRef(onSelect);
-  pointsRef.current = points;
-  recommendationsRef.current = recommendations;
-  originRef.current = origin;
-  destinationRef.current = destination;
-  activeIdRef.current = activeId;
-  onSelectRef.current = onSelect;
+  useEffect(() => {
+    pointsRef.current = points;
+    recommendationsRef.current = recommendations;
+    originRef.current = origin;
+    destinationRef.current = destination;
+    activeIdRef.current = activeId;
+    onSelectRef.current = onSelect;
+  }, [points, recommendations, origin, destination, activeId, onSelect]);
 
   useEffect(() => {
     if (!naverKey || !containerRef.current) {

@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "GPS-first Seoul public parking recommendation PWA with Kakao Map and Naver Map integration.",
+  "description": "GPS-first Seoul public parking recommendation PWA with Naver Maps routing and navigation.",
   "license": "BUSL-1.1",
   "scripts": {
     "dev": "next dev --turbopack",
