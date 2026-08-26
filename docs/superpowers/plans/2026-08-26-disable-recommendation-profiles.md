@@ -90,6 +90,8 @@ Wrap the existing `추천 기준` fieldset without changing its contents:
 
 Do not alter `profileItems`, `profile`, `setProfile`, the `requestBody.profile` field, or server profile handling.
 
+Change the step helper copy from `체류시간과 우선순위` to `체류시간과 탐색 반경` so the hidden feature is not advertised.
+
 - [ ] **Step 3: Run the focused test and verify GREEN**
 
 Run: `npm test -- tests/AppShell.test.tsx -t "hides recommendation profiles"`

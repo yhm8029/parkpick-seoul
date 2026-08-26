@@ -127,6 +127,25 @@ describe("AppShell recommendation results", () => {
     expect(screen.getByRole("button", { name: "지금" }).classList.contains("now-button")).toBe(true);
   });
 
+  it("hides recommendation profiles and submits the balanced default", async () => {
+    const user = await renderReadyApp();
+    const fetchMock = vi.mocked(fetch);
+
+    expect(screen.queryByRole("group", { name: "추천 기준" })).toBeNull();
+    expect(screen.queryByLabelText("균형")).toBeNull();
+    expect(screen.queryByLabelText("저렴")).toBeNull();
+    expect(screen.queryByLabelText("가까움")).toBeNull();
+    expect(screen.queryByLabelText("주차확실")).toBeNull();
+    expect(screen.queryByText("체류시간과 우선순위")).toBeNull();
+    expect(screen.getByText("체류시간과 탐색 반경")).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
+    await screen.findByRole("heading", { name: "코엑스 주변 추천" });
+
+    const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    expect(requestBody.profile).toBe("BALANCED");
+  });
+
   it("replaces the planner with recommendation cards after success", async () => {
     const user = await renderReadyApp();
     await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));

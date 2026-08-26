@@ -8,6 +8,7 @@
 
 - `AppShell`에 로컬 기능 플래그 `PROFILE_SELECTOR_ENABLED`를 둔다.
 - 플래그가 꺼진 동안 `추천 기준` fieldset을 렌더링하지 않는다.
+- 단계 보조 문구는 남아 있는 입력에 맞춰 `체류시간과 탐색 반경`으로 표시한다.
 - `profileItems`, `profile` 상태, 변경 핸들러, API 요청의 `profile` 필드는 삭제하지 않는다.
 - 서버의 `BALANCED`, `CHEAP`, `NEAR`, `CERTAIN` 처리 로직도 변경하지 않는다.
 - 플래그를 다시 켜면 기존 선택 UI와 동작을 복원할 수 있어야 한다.
