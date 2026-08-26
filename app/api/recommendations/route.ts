@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchDrivingRoutes } from "@/lib/api/kakao-routes";
+import { fetchNaverDrivingRoutes } from "@/lib/api/naver-directions";
 import { fetchSeoulParkingLots } from "@/lib/api/seoul-parking";
 import { fetchNearbySeoulParking } from "@/lib/api/seoul-parking-nearby";
 import { haversineDistanceMeters } from "@/lib/domain/distance";
@@ -23,7 +23,6 @@ const MANUAL_MIN_METERS = 50;
 const MANUAL_MAX_METERS = 1_000;
 const MANUAL_STEP_METERS = 50;
 const AUTO_HARD_LIMIT_METERS = 1_000;
-const ROUTE_CANDIDATE_LIMIT = 30;
 
 function coordinate(value: unknown): value is Coordinate {
   if (!value || typeof value !== "object") return false;
@@ -179,12 +178,12 @@ export async function POST(request: Request) {
     }
   }
 
-  const routeCandidates = filterByDistance(lots, input.destination, distanceMeters).slice(
-    0,
-    ROUTE_CANDIDATE_LIMIT,
-  );
-  const routes = await fetchDrivingRoutes(input.origin, routeCandidates);
-  const ranked = recommendParking(lots, input, routes);
+  const preliminary = recommendParking(lots, input);
+  const routeCandidates = preliminary.recommendations;
+  const routes = await fetchNaverDrivingRoutes(input.origin, routeCandidates);
+  const ranked = routeCandidates.length
+    ? recommendParking(routeCandidates, input, routes)
+    : preliminary;
   if (ranked.recommendations.length === 0) {
     dataNotice = dataMode === "FALLBACK"
       ? "서울시 공공데이터 대체 소스에서도 선택한 거리 안의 공영주차장을 찾지 못했습니다."

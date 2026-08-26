@@ -1,12 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { Analytics } from "@vercel/analytics/next";
 import { PwaRegister } from "@/components/Pwa";
 import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
   title: "ParkPick Seoul",
-  description: "GPS 기반 서울 공영주차 추천과 카카오맵·네이버지도 연동 PWA",
+  description: "GPS 기반 서울 공영주차 추천과 네이버지도·길안내 연동 PWA",
   applicationName: "ParkPick Seoul",
   appleWebApp: { capable: true, title: "ParkPick", statusBarStyle: "default" },
   icons: { icon: "/icons/icon.svg", apple: "/icons/icon.svg" },
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body id="top">
         <PwaRegister />
         {children}
+        <Analytics />
       </body>
     </html>
   );

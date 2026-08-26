@@ -146,6 +146,7 @@ function scoreAndRank(
     if (availabilityRisk === "LOW") reasons.push("도착 시에도 빈자리가 남을 가능성이 높습니다.");
     if (context.walkMinutes <= 10) reasons.push(`목적지까지 도보 약 ${context.walkMinutes}분입니다.`);
     if (context.fee === 0) reasons.push("예상 체류시간 기준 무료입니다.");
+    if (context.route.source === "NAVER_DIRECTIONS") reasons.push("네이버 현재 교통 기준 자동차 경로를 반영했습니다.");
     if (context.route.source === "KAKAO_MOBILITY") reasons.push("실제 자동차 경로시간을 반영했습니다.");
     const warnings: string[] = [];
     if (!lot.realtimeSupported) warnings.push("실시간 잔여면 정보가 없습니다.");
@@ -160,6 +161,8 @@ function scoreAndRank(
       driveMinutes: context.route.driveMinutes,
       driveDistanceMeters: context.route.driveDistanceMeters,
       routeSource: context.route.source,
+      routePath: context.route.path,
+      routeCongestionSections: context.route.congestionSections,
       walkMinutes: context.walkMinutes,
       walkDistanceMeters: context.walkDistanceMeters,
       estimatedFee: context.fee,

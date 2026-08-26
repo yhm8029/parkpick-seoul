@@ -1,0 +1,6 @@
+footer .container{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:24px}
+.visit-stats{justify-self:center;display:grid;grid-template-columns:repeat(2,minmax(82px,1fr));gap:1px;border:1px solid rgba(255,255,255,.12);border-radius:12px;overflow:hidden}
+.visit-stats>div{display:flex;flex-direction:column;gap:3px;padding:8px 14px;background:rgba(255,255,255,.04);text-align:center}
+.visit-stats span{font-size:.53rem;letter-spacing:.13em;color:#89b6a8}
+.visit-stats strong{font-size:.76rem;color:#fff}
+@media(max-width:680px){footer .container{display:grid;grid-template-columns:1fr;text-align:left}.visit-stats{justify-self:start}}
