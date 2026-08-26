@@ -38,6 +38,8 @@ Server adapters and domain
 
 `app/api/recommendations/route.ts`는 입력을 검증하고 서울시 어댑터를 호출합니다. `lib/domain/recommend.ts`는 부작용 없이 점수와 표시값을 계산합니다.
 
+Vercel 함수는 서울 주차 포털과 NAVER Maps의 한국 리전 네트워크 지연을 줄이기 위해 `vercel.json`에서 서울 리전(`icn1`)으로 배치합니다.
+
 기본 주차장 소스는 `parking.seoul.go.kr/SearchParking.do`입니다. 응답에는 민간 유형도 섞일 수 있으므로 `NS`, `NW`, `BP`만 허용하고 `BS`, `NP` 등은 정확한 allowlist에서 제외합니다. 포털 요청 자체가 실패했을 때만 `SEOUL_OPEN_API_KEY`가 있으면 열린데이터 GetParkInfo/GetParkingInfo를 대체 소스로 사용합니다.
 
 Directions 호출량을 제한하기 위해 다음 2단계를 사용합니다.

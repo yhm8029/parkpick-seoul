@@ -1,4 +1,5 @@
 import { beforeEach, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
 import type { Coordinate, ParkingLot } from "@/lib/types";
 
 const mocks = vi.hoisted(() => ({
@@ -55,6 +56,13 @@ beforeEach(() => {
     path: [routeOrigin, { latitude: item.latitude, longitude: item.longitude }],
     congestionSections: [{ pointIndex: 0, pointCount: 2, congestion: 1 as const }],
   })));
+});
+
+it("runs recommendation provider calls in Vercel's Seoul region", () => {
+  const config = JSON.parse(
+    readFileSync(new URL("../vercel.json", import.meta.url), "utf8"),
+  ) as { regions?: string[] };
+  expect(config.regions).toEqual(["icn1"]);
 });
 
 it("freezes three candidates and enriches only them with NAVER routes", async () => {

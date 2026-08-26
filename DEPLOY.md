@@ -125,6 +125,8 @@ npx vercel --prod --yes
 
 배포가 `READY`이고 production alias가 연결됐는지 확인합니다.
 
+Vercel 함수는 `vercel.json`에서 서울 리전(`icn1`)으로 설정되어 있습니다. 배포 로그나 함수 설정에서 리전이 서울로 반영됐는지 확인합니다.
+
 ```powershell
 Invoke-RestMethod 'https://parkpick-seoul.vercel.app/api/places/search?q=%ED%99%8D%EB%8C%80%EC%9E%85%EA%B5%AC%EC%97%AD'
 ```
