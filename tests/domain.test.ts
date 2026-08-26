@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { calculateParkingFee } from "@/lib/domain/fees";
 import { recommendParking } from "@/lib/domain/recommend";
+import { formatFeeRateLabel } from "@/lib/utils";
 import type { ParkingLot, RecommendationRequest } from "@/lib/types";
 
 const now = new Date("2026-08-25T09:00:00Z");
@@ -26,6 +27,19 @@ const lot = (id: string, available: number, latitude = 37.501, longitude = 127.0
   realtimeSupported: true,
   feeRule: { isFree: false, baseMinutes: 10, baseFee: 1000, additionalMinutes: 10, additionalFee: 1000 },
   isOpen: true,
+});
+
+describe("fee-rate labels", () => {
+  it("formats shared, tiered, free, and missing fee rules", () => {
+    expect(
+      formatFeeRateLabel({ isFree: false, baseMinutes: 10, baseFee: 600, additionalMinutes: 10, additionalFee: 600 }),
+    ).toBe("10분당 600원");
+    expect(
+      formatFeeRateLabel({ isFree: false, baseMinutes: 30, baseFee: 1000, additionalMinutes: 10, additionalFee: 500 }),
+    ).toBe("기본 30분 1,000원 · 추가 10분 500원");
+    expect(formatFeeRateLabel({ isFree: true })).toBe("무료");
+    expect(formatFeeRateLabel({ isFree: false })).toBe("요금 기준 확인 필요");
+  });
 });
 
 describe("fees", () => {

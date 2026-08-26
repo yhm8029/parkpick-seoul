@@ -122,6 +122,7 @@ describe("AppShell recommendation results", () => {
     expect(screen.getByRole("heading", { name: "주차장 1" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "주차장 2" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "주차장 3" })).toBeTruthy();
+    expect(screen.getAllByText("10분당 600원")).toHaveLength(3);
   });
 
   it("returns to the populated planner with retained map when conditions are edited", async () => {
