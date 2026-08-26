@@ -45,11 +45,19 @@ export interface ParkingLot extends Coordinate {
   trendPer30Minutes?: number;
 }
 
+export interface RouteCongestionSection {
+  pointIndex: number;
+  pointCount: number;
+  congestion: 0 | 1 | 2 | 3;
+}
+
 export interface RouteEstimate {
   parkingId: string;
   driveMinutes: number;
   driveDistanceMeters: number;
-  source: "KAKAO_MOBILITY" | "ESTIMATE";
+  source: "NAVER_DIRECTIONS" | "KAKAO_MOBILITY" | "ESTIMATE";
+  path?: Coordinate[];
+  congestionSections?: RouteCongestionSection[];
 }
 
 export interface RecommendationRequestBase {
@@ -72,6 +80,8 @@ export interface ParkingRecommendation extends ParkingLot {
   driveMinutes: number;
   driveDistanceMeters: number;
   routeSource: RouteEstimate["source"];
+  routePath?: Coordinate[];
+  routeCongestionSections?: RouteCongestionSection[];
   walkMinutes: number;
   walkDistanceMeters: number;
   estimatedFee: number | null;
