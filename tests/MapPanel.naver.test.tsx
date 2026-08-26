@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 
 import { MapPanel } from "@/components/MapPanel";
 import type { ParkingRecommendation, Place } from "@/lib/types";
@@ -12,6 +12,7 @@ type NaverHandle = {
     LatLngBounds: new (...args: unknown[]) => { extend: (coordinate: unknown) => void };
     Map: new (...args: unknown[]) => unknown;
     Marker: new (...args: unknown[]) => unknown;
+    Polyline: new (...args: unknown[]) => { setMap: (map: unknown) => void };
     Event: { addListener: (...args: unknown[]) => void };
   };
   constructorCalls: {
@@ -19,10 +20,12 @@ type NaverHandle = {
     LatLngBounds: LatLngConstructorCall[];
     Map: unknown[][];
     Marker: unknown[][];
+    Polyline: unknown[][];
   };
   fitBoundsCalls: FitBoundsCall[];
   setCenterCalls: { args: unknown[] }[];
   setZoomCalls: { args: unknown[] }[];
+  polylineSetMapCalls: unknown[];
 };
 
 function installNaverHandle(): NaverHandle {
@@ -33,10 +36,12 @@ function installNaverHandle(): NaverHandle {
       LatLngBounds: [],
       Map: [],
       Marker: []
+      ,Polyline: []
     },
     fitBoundsCalls: [],
     setCenterCalls: [],
     setZoomCalls: []
+    ,polylineSetMapCalls: []
   };
 
   class LatLng {
@@ -88,9 +93,18 @@ function installNaverHandle(): NaverHandle {
     }
   }
 
+  class Polyline {
+    constructor(...args: unknown[]) {
+      handle.constructorCalls.Polyline.push(args);
+    }
+    setMap(map: unknown): void {
+      handle.polylineSetMapCalls.push(map);
+    }
+  }
+
   const Event = { addListener: () => undefined };
 
-  handle.maps = { LatLng, LatLngBounds, Map, Marker, Event };
+  handle.maps = { LatLng, LatLngBounds, Map, Marker, Polyline, Event };
 
   (window as unknown as Record<string, unknown>).naver = { maps: handle.maps };
   return handle;
@@ -293,5 +307,54 @@ describe("MapPanel NAVER fitBounds regression", () => {
     const zoom = (handle.setZoomCalls[0]!.args[0] as number);
     expect(zoom).toBeGreaterThan(0);
     expect(zoom).toBeLessThanOrEqual(16);
+  });
+
+  it("loads the real NAVER map from origin before a destination is selected", async () => {
+    const naverSdkModule = await import("@/lib/maps/naver-sdk");
+    vi.spyOn(naverSdkModule, "loadNaverMapSdk").mockResolvedValue(undefined);
+    const handle = installNaverHandle();
+
+    render(<MapPanel origin={{ latitude: 37.5665, longitude: 126.978 }} destination={null} recommendations={[]} />);
+
+    await waitFor(() => expect(handle.constructorCalls.Map).toHaveLength(1));
+    expect(handle.setCenterCalls.length).toBeGreaterThan(0);
+    expect(handle.setZoomCalls[0]?.args[0]).toBe(15);
+    expect(screen.queryByText(/카카오/)).toBeNull();
+  });
+
+  it("uses the Seoul overview zoom before any point is selected", async () => {
+    const naverSdkModule = await import("@/lib/maps/naver-sdk");
+    vi.spyOn(naverSdkModule, "loadNaverMapSdk").mockResolvedValue(undefined);
+    const handle = installNaverHandle();
+
+    render(<MapPanel origin={null} destination={null} recommendations={[]} />);
+
+    await waitFor(() => expect(handle.constructorCalls.Map).toHaveLength(1));
+    expect(handle.setZoomCalls[0]?.args[0]).toBe(13);
+  });
+
+  it("draws and cleans up the active NAVER route without rebuilding the map", async () => {
+    const naverSdkModule = await import("@/lib/maps/naver-sdk");
+    vi.spyOn(naverSdkModule, "loadNaverMapSdk").mockResolvedValue(undefined);
+    const handle = installNaverHandle();
+    const destination = buildDestination();
+    const first = {
+      ...recommendation(1, 37.4979, 127.0276),
+      routeSource: "NAVER_DIRECTIONS" as const,
+      routePath: [
+        { latitude: 37.51, longitude: 127.01 },
+        { latitude: 37.505, longitude: 127.02 },
+        { latitude: 37.4979, longitude: 127.0276 },
+      ],
+      routeCongestionSections: [{ pointIndex: 0, pointCount: 3, congestion: 3 as const }],
+    };
+
+    const view = render(<MapPanel origin={{ latitude: 37.51, longitude: 127.01 }} destination={destination} recommendations={[first]} activeId={first.id} />);
+    await waitFor(() => expect(handle.constructorCalls.Polyline.length).toBeGreaterThanOrEqual(2));
+    expect(handle.constructorCalls.Map).toHaveLength(1);
+
+    view.rerender(<MapPanel origin={{ latitude: 37.51, longitude: 127.01 }} destination={destination} recommendations={[first]} activeId={null} />);
+    await waitFor(() => expect(handle.polylineSetMapCalls).toContain(null));
+    expect(handle.constructorCalls.Map).toHaveLength(1);
   });
 });

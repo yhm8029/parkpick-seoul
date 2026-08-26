@@ -38,6 +38,7 @@ declare global {
           setZoom: (zoom: number) => void;
         };
         Marker: new (options: Record<string, unknown>) => unknown;
+        Polyline: new (options: Record<string, unknown>) => { setMap: (map: unknown) => void };
         Event: { addListener: (target: unknown, event: string, listener: () => void) => void };
       };
     };

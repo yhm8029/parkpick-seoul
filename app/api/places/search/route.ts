@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { searchPlaces } from "@/lib/api/kakao-places";
+import { searchPlaces } from "@/lib/api/naver-place-search";
 
 export const dynamic = "force-dynamic";
 

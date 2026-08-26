@@ -113,6 +113,13 @@ async function renderReadyApp(payload: RecommendationResponse = response) {
 }
 
 describe("AppShell recommendation results", () => {
+  it("uses explicit arrival and stay labels", () => {
+    render(<AppShell />);
+    expect(screen.getByText("도착 예정시간")).toBeTruthy();
+    expect(screen.getByText("예상 체류 시간")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "지금" }).classList.contains("now-button")).toBe(true);
+  });
+
   it("replaces the planner with recommendation cards after success", async () => {
     const user = await renderReadyApp();
     await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
