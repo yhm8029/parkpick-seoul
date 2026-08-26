@@ -28,7 +28,7 @@ export function useGeolocation() {
         result.addEventListener("change", onChange);
         onChange();
         setStatus(current => current === "checking" ? "idle" : current);
-      }).catch(() => setStatus(current => current === "checking" ? "idle" : current));
+      }).catch(() => { if (!disposed) setStatus(current => current === "checking" ? "idle" : current); });
     });
     return () => { disposed = true; permission?.removeEventListener("change", onChange); };
   }, []);
