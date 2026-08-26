@@ -1,10 +1,10 @@
 {
   "name": "parkpick-seoul",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "GPS-first Seoul public parking recommendation PWA with Kakao Map and Naver Map integration.",
-  "license": "MIT",
+  "license": "BUSL-1.1",
   "scripts": {
     "dev": "next dev --turbopack",
     "dev:https": "next dev --experimental-https --turbopack",

@@ -14,6 +14,7 @@
 
 **Files:**
 - Modify: `LICENSE`
+- Create: `NOTICE`
 - Create: `COMMERCIAL-LICENSE.md`
 
 - [ ] **Step 1: Replace `LICENSE` with the standard BSL 1.1 template**
@@ -35,10 +36,16 @@ Change Date: 2030-08-26
 
 Change License: Apache License, Version 2.0 (Apache-2.0)
 
-Required Notice: Copyright (c) 2026 HyunM
 ```
 
 Do not add restrictions on copying, modifying, redistribution, or non-production use; the BSL 1.1 standard grant already permits them.
+
+Create `NOTICE` with the separate project copyright notice:
+
+```text
+ParkPick Seoul
+Copyright (c) 2026 HyunM
+```
 
 - [ ] **Step 2: Add the commercial inquiry notice**
 
@@ -61,7 +68,8 @@ This notice explains how to request commercial terms. It is not itself a commerc
 Run:
 
 ```text
-rg -n "Licensor: HyunM|Licensed Work: ParkPick Seoul 0.2.0|Change Date: 2030-08-26|Apache License, Version 2.0|Required Notice" LICENSE
+rg -n "Licensor: HyunM|Licensed Work: ParkPick Seoul 0.2.0|Change Date: 2030-08-26|Apache License, Version 2.0" LICENSE
+rg -n "ParkPick Seoul|Copyright \(c\) 2026 HyunM" NOTICE
 rg -n "commercial production|revenue-generating|github.com/yhm8029/parkpick-seoul/issues" COMMERCIAL-LICENSE.md
 ```
 

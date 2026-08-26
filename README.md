@@ -144,4 +144,10 @@ git push origin main
 
 ## 라이선스
 
-MIT
+ParkPick Seoul 0.2.0부터 [Business Source License 1.1](./LICENSE)을 적용합니다.
+
+- 개인·교육·연구·평가·개발·테스트 및 라이선스에 명시된 비상업적 사용: 별도 비용 없이 허용
+- 상업용 프로덕션, 유료 서비스 또는 수익형 배포: 별도 유료 라이선스 필요
+- 2030-08-26부터: Apache License 2.0으로 전환
+
+상업용 이용은 [Commercial licensing 안내](./COMMERCIAL-LICENSE.md)를 확인해 주세요.
