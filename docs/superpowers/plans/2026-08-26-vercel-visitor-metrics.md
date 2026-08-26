@@ -4,9 +4,9 @@
 
 **Goal:** Add truthful `TODAY / 30 DAYS` anonymous visitor counts to the footer using Vercel Web Analytics, with no realtime-presence counter and no new database.
 
-**Architecture:** The official client package records production page views. A server-only adapter calls Vercel's Web Analytics aggregate endpoint for Seoul-local today and rolling 30-day ranges, sums daily-reset anonymous visitor buckets, and exposes only public counts through a five-minute cached API route. A small client component loads the counts after the page and hides itself when unavailable.
+**Architecture:** The official client package records production page views. A server-side adapter calls Vercel's Web Analytics count endpoint twice, once for Seoul-local today and once for the rolling 30-day range, and exposes only the returned visitor totals through a five-minute cached API route. A small client component loads the counts after the page and hides itself when unavailable.
 
-**Tech Stack:** Next.js 15 App Router, React 19, TypeScript, `@vercel/analytics` 2.0.1, Vercel Web Analytics REST API, Vitest, Testing Library.
+**Tech Stack:** Next.js 16 App Router, React 19, TypeScript, `@vercel/analytics` 2.0.1, Vercel Web Analytics REST API, Vitest, Testing Library.
 
 ---
 
@@ -14,7 +14,7 @@
 
 - Modify `package.json` and `package-lock.json`: exact `@vercel/analytics` dependency.
 - Modify `app/layout.tsx`: official analytics collector.
-- Create `lib/api/vercel-analytics.ts`: server-only range construction, authenticated aggregate calls, validation, and summation.
+- Create `lib/api/vercel-analytics.ts`: server-only range construction, authenticated count calls, validation, and normalization.
 - Create `app/api/visit-stats/route.ts`: five-minute cached public unavailable-or-count response.
 - Create `components/VisitStats.tsx`: nonblocking footer metrics UI.
 - Modify `app/page.tsx`: compose visitor metrics in the existing footer.
@@ -77,7 +77,7 @@ git push origin main
 
 - [ ] **Step 1: Write failing adapter tests**
 
-Use a fixed instant and mock two aggregate responses. Assert exact query granularity, production filter, Seoul offsets, sum behavior, no token serialization, and unavailable behavior:
+Use a fixed instant and mock two count responses. Assert the exact count endpoint, production filter, Seoul offsets, visitor totals, no token serialization, and unavailable behavior:
 
 ```ts
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -90,33 +90,34 @@ it("sums Seoul TODAY hours and rolling 30 DAYS daily visitors", async () => {
   vi.stubEnv("VERCEL_PROJECT_ID", "prj_test");
   vi.stubEnv("VERCEL_ANALYTICS_TEAM_ID", "team_test");
   const fetchMock = vi.fn()
-    .mockResolvedValueOnce(new Response(JSON.stringify({ data: [
-      { timestamp: "2026-08-25T15:00:00.000Z", visitors: 2 },
-      { timestamp: "2026-08-25T16:00:00.000Z", visitors: 3 }
-    ] }), { status: 200 }))
-    .mockResolvedValueOnce(new Response(JSON.stringify({ data: [
-      { timestamp: "2026-07-27T15:00:00.000Z", visitors: 10 },
-      { timestamp: "2026-07-28T15:00:00.000Z", visitors: 11 }
-    ] }), { status: 200 }));
+    .mockResolvedValueOnce(new Response(JSON.stringify({ visitors: 5, pageviews: 8 }), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ visitors: 21, pageviews: 35 }), { status: 200 }));
   vi.stubGlobal("fetch", fetchMock);
 
   const stats = await fetchVisitStats(new Date("2026-08-26T01:13:00.000Z"));
 
   expect(stats).toEqual({ today: 5, thirtyDays: 21, asOf: "2026-08-26T01:13:00.000Z" });
   const urls = fetchMock.mock.calls.map(call => new URL(String(call[0])));
-  expect(urls[0].searchParams.getAll("by")).toContain("hour");
-  expect(urls[1].searchParams.getAll("by")).toContain("day");
+  expect(urls.every(url => url.pathname.endsWith("/visits/count"))).toBe(true);
+  expect(urls.every(url => !url.searchParams.has("by"))).toBe(true);
   expect(urls[0].searchParams.get("filter")).toBe("environment eq 'production'");
   expect(urls[0].searchParams.get("since")).toContain("+09:00");
   expect(JSON.stringify(stats)).not.toContain("private-token");
 });
 
-it("returns null for missing credentials, non-ok responses, or malformed rows", async () => {
+it("returns null for missing credentials or malformed count payloads", async () => {
+  await expect(fetchVisitStats(new Date())).resolves.toBeNull();
+  vi.stubEnv("VERCEL_ANALYTICS_TOKEN", "private-token");
+  vi.stubEnv("VERCEL_PROJECT_ID", "prj_test");
+  vi.stubEnv("VERCEL_ANALYTICS_TEAM_ID", "team_test");
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+    new Response(JSON.stringify({ visitors: "unknown" }), { status: 200 }),
+  ));
   await expect(fetchVisitStats(new Date())).resolves.toBeNull();
 });
 ```
 
-Normalize only the official `data` response envelope shown above.
+Normalize only finite, nonnegative `visitors` values from the official count response.
 
 - [ ] **Step 2: Run and confirm RED**
 
@@ -135,7 +136,7 @@ export interface VisitStats {
   asOf: string;
 }
 
-const ENDPOINT = "https://api.vercel.com/v1/query/web-analytics/visits/aggregate";
+const ENDPOINT = "https://api.vercel.com/v1/query/web-analytics/visits/count";
 
 function seoulMidnight(now: Date, daysAgo: number): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -145,7 +146,7 @@ function seoulMidnight(now: Date, daysAgo: number): string {
   return `${value.year}-${value.month}-${value.day}T00:00:00+09:00`;
 }
 
-async function query(by: "hour" | "day", since: string, until: string): Promise<number | null> {
+async function query(since: string, until: string): Promise<number | null> {
   const token = process.env.VERCEL_ANALYTICS_TOKEN;
   const projectId = process.env.VERCEL_PROJECT_ID;
   const teamId = process.env.VERCEL_ANALYTICS_TEAM_ID;
@@ -153,10 +154,8 @@ async function query(by: "hour" | "day", since: string, until: string): Promise<
   const url = new URL(ENDPOINT);
   url.searchParams.set("projectId", projectId);
   url.searchParams.set("teamId", teamId);
-  url.searchParams.append("by", by);
   url.searchParams.set("since", since);
   url.searchParams.set("until", until);
-  url.searchParams.set("limit", by === "hour" ? "24" : "31");
   url.searchParams.set("filter", "environment eq 'production'");
   const response = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
@@ -164,20 +163,18 @@ async function query(by: "hour" | "day", since: string, until: string): Promise<
     signal: AbortSignal.timeout(5_000)
   });
   if (!response.ok) return null;
-  const body = await response.json() as { data?: Array<{ visitors?: unknown }> };
-  if (!Array.isArray(body.data)) return null;
-  return body.data.reduce((sum, row) =>
-    typeof row.visitors === "number" && Number.isFinite(row.visitors) && row.visitors >= 0
-      ? sum + row.visitors
-      : sum, 0);
+  const body = await response.json() as { visitors?: unknown };
+  return typeof body.visitors === "number" && Number.isFinite(body.visitors) && body.visitors >= 0
+    ? body.visitors
+    : null;
 }
 
 export async function fetchVisitStats(now = new Date()): Promise<VisitStats | null> {
   try {
     const until = now.toISOString();
     const [today, thirtyDays] = await Promise.all([
-      query("hour", seoulMidnight(now, 0), until),
-      query("day", seoulMidnight(now, 29), until)
+      query(seoulMidnight(now, 0), until),
+      query(seoulMidnight(now, 29), until)
     ]);
     if (today === null || thirtyDays === null) return null;
     return { today, thirtyDays, asOf: until };
@@ -219,7 +216,7 @@ Expected: adapter tests and typecheck PASS; token is absent from serialized resu
 ```powershell
 git add lib/api/vercel-analytics.ts app/api/visit-stats/route.ts tests/vercel-analytics.test.ts
 git commit -m "feat: expose cached Vercel visitor metrics" `
-  -m "Done: Query Seoul-local TODAY and 30 DAYS anonymous visitors server-side with five-minute caching and safe unavailable fallback." `
+  -m "Done: Query Seoul-local TODAY and 30 DAYS anonymous visitor totals server-side with five-minute caching and safe unavailable fallback." `
   -m "Remaining: Render footer metrics, configure Web Analytics access, run full verification, and deploy."
 git push origin main
 ```
@@ -341,15 +338,9 @@ git diff --check
 
 Expected: all commands PASS. Run `npm run lint` separately and distinguish existing lint debt from any new issue.
 
-- [ ] **Step 5: Commit and push integrated environment documentation**
+- [ ] **Step 5: Confirm integrated environment documentation is committed by NAVER Task 6**
 
-```powershell
-git add .env.example
-git commit -m "docs: document Vercel analytics access" `
-  -m "Done: Document server-only visitor-metrics access and verify analytics collection and display behavior." `
-  -m "Remaining: Deploy production and confirm TODAY and 30 DAYS populate after Vercel processes page-view data."
-git push origin main
-```
+Run `git log -1 --format=fuller -- .env.example` and `rg "VERCEL_ANALYTICS_TOKEN|VERCEL_ANALYTICS_TEAM_ID" .env.example`. Expected: the NAVER Task 6 integration commit owns both empty variables and no second no-op commit is created.
 
 - [ ] **Step 6: Deploy and smoke-test**
 

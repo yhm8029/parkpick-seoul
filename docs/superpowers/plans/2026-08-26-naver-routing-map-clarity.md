@@ -6,7 +6,7 @@
 
 **Architecture:** The recommendation API first freezes the existing estimate-based three-lot shortlist, then calls a new server-only NAVER Directions adapter once per shortlisted lot in parallel and re-scores only that fixed membership. `MapPanel` stays client-side and uses normalized route geometry to draw a neutral base polyline plus congestion overlays. Kakao source files remain available but are removed from current API/UI composition.
 
-**Tech Stack:** Next.js 15 App Router, React 19, TypeScript, NAVER Directions 5 REST API, NAVER Web Dynamic Map JavaScript API, Vitest, Testing Library.
+**Tech Stack:** Next.js 16 App Router, React 19, TypeScript, NAVER Directions 5 REST API, NAVER Web Dynamic Map JavaScript API, Vitest, Testing Library.
 
 ---
 
@@ -25,7 +25,7 @@
 - Modify `components/ParkingCard.tsx`: explicit travel legs and realtime-source explanation.
 - Modify `components/AppShell.tsx`: exact planner labels.
 - Modify `app/styles/planner.css`: nonshrinking horizontal `지금` button.
-- Modify `app/styles/map-results.css`: NAVER-only toolbar and route/card helper layout.
+- Modify `app/styles/map-results.css`: NAVER-only toolbar, route/card helper layout, and its own mobile rules.
 - Modify `.env.example`: document Directions 5 use of the existing server-only NAVER credentials.
 - Modify `README.md`: describe NAVER as the current provider and Kakao as dormant future code.
 - Create `tests/naver-directions.test.ts`: adapter request/parse/failure coverage.
@@ -357,7 +357,7 @@ const active = recommendations.find(item => item.id === activeId) ?? null;
 
 Remove the `!destination` effect guard and center both provider render branches on `centerPoint`. Render the NAVER SDK even with no points. For no points, create the map at Seoul center with zoom 13; for one point, use setCenter plus zoom 15; otherwise preserve bounded fit behavior.
 
-After creating the NAVER map, extend the viewport coordinates with `active.routePath`, draw a neutral base `Polyline` for that path, and then slice congestion sections from the original path with clamped `[pointIndex, pointIndex + pointCount]` bounds. Overlay green `#16a36a`, orange `#f59e0b`, or red `#dc4c3f` polylines. Include a shared boundary point. Keep overlay instances in a local list and call `setMap(null)` from the effect cleanup before active-ID rerender or unmount.
+Keep the NAVER map instance and base markers in refs so selecting a different card does not recreate the map or reset the user's pan/zoom. In a separate effect keyed by `activeId` and active route geometry, extend bounds only when a new recommendation response arrives, draw a neutral base `Polyline`, and slice congestion sections from the original path with clamped `[pointIndex, pointIndex + pointCount]` bounds. Overlay green `#16a36a`, orange `#f59e0b`, or red `#dc4c3f` polylines and include a shared boundary point. Keep only route overlay instances in that effect's local list and call `setMap(null)` during active-route change or unmount; do not destroy the map instance.
 
 Remove the provider tab group from JSX. Show one static `NAVER 지도` label when configured. Keep preview rendering for SDK errors and missing public key. Keep the Kakao loader/render branch in the source but unreachable because current composition never changes provider.
 
@@ -442,7 +442,6 @@ git push origin main
 - Modify: `components/AppShell.tsx`
 - Modify: `app/styles/planner.css`
 - Modify: `app/styles/map-results.css`
-- Modify: `app/styles/responsive.css`
 - Modify: `tests/AppShell.test.tsx`
 
 - [ ] **Step 1: Write one focused RED UI test**
@@ -507,7 +506,7 @@ Expected: UI suite PASS and typecheck PASS.
 - [ ] **Step 6: Commit and push checkpoint**
 
 ```powershell
-git add components/ParkingCard.tsx components/AppShell.tsx app/styles/planner.css app/styles/map-results.css app/styles/responsive.css tests/AppShell.test.tsx
+git add components/ParkingCard.tsx components/AppShell.tsx app/styles/planner.css app/styles/map-results.css tests/AppShell.test.tsx
 git commit -m "feat: clarify parking travel and realtime labels" `
   -m "Done: State both travel legs, current-traffic versus estimate status, realtime-source limits, and full planner labels." `
   -m "Remaining: Configure NAVER credentials and console, run full verification, deploy, and verify production."
