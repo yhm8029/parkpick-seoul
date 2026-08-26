@@ -306,7 +306,7 @@ describe("AppShell recommendation results", () => {
       json: () => Promise<RecommendationResponse>;
     }) => void;
     const fetchMock = vi.fn();
-    fetchMock.mockImplementationOnce((_url: string, _init?: RequestInit) =>
+    fetchMock.mockImplementationOnce(() =>
       new Promise<{ ok: boolean; json: () => Promise<RecommendationResponse> }>(resolve => {
         resolveSuperseded = resolve;
       })

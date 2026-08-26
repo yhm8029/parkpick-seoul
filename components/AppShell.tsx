@@ -75,12 +75,6 @@ export function AppShell() {
     setEmptyDistance(false);
   }, [cancelInFlight]);
 
-  const revertDraft = useCallback(() => {
-    setEditing(false);
-    setError(null);
-    setEmptyDistance(false);
-  }, []);
-
   useEffect(() => {
     if (result) resultHeadingRef.current?.focus();
   }, [result]);
@@ -228,7 +222,7 @@ export function AppShell() {
       {error ? <div className="form-error" role="alert"><CircleAlert size={17} /> <span>{error}</span></div> : null}
       {emptyDistance ? <div className="form-notice" role="status"><CircleAlert size={17} /> <span>선택한 거리 안에서 공영주차장을 찾지 못했습니다.</span></div> : null}
       <Button size="lg" full onClick={recommend} disabled={!ready || loading}>{loading ? <LoaderCircle className="spin" /> : <SearchCheck />} {loading ? "주차장을 비교하는 중" : "추천 주차장 찾기"}</Button>{!ready ? <p className="button-hint">출발지와 목적지를 선택하면 활성화됩니다.</p> : null}
-</div> : null}{result && appliedOrigin && !editing ? <RecommendationPanel headingRef={resultHeadingRef} result={result} activeId={activeId} mobileView={mobileView} onSelect={activate} onMobileViewChange={setMobileView} onEdit={beginEdit} appliedOrigin={appliedOrigin} onCancel={revertDraft} /> : null}<div className="preview-column"><MapPanel origin={mapOrigin} destination={mapDestination} recommendations={mapRecommendations} activeId={mapActiveId} onSelect={activate} />{result && appliedOrigin && !editing && active ? <div className="active-route"><div><small>{active.rank}순위</small><strong>{active.name}</strong><span>출발지→주차장 자동차 {active.driveMinutes}분 · 주차장→목적지 도보 {active.walkMinutes}분</span></div><NavigationButtons origin={appliedOrigin} parking={active} compact /></div> : null}<div className="route-summary"><div><Route /><span><strong>{(result ? mapOrigin?.name : origin?.name) || "출발지 미선택"}</strong><small>출발</small></span></div><ArrowRight /><div><Map /><span><strong>{mapDestination?.name || "목적지 미선택"}</strong><small>도착</small></span></div></div>{!result ? <div className="principles"><div><BadgeCheck /><span><strong>위치 최소 사용</strong><small>GPS 좌표를 저장하지 않음</small></span></div><div><Database /><span><strong>데이터 상태 표시</strong><small>실시간·지연·데모 구분</small></span></div><div><CarFront /><span><strong>네이버 길안내</strong><small>네이버지도 연결</small></span></div></div> : null}</div></div></section>
+</div> : null}{result && appliedOrigin && !editing ? <RecommendationPanel headingRef={resultHeadingRef} result={result} activeId={activeId} mobileView={mobileView} onSelect={activate} onMobileViewChange={setMobileView} onEdit={beginEdit} appliedOrigin={appliedOrigin} /> : null}<div className="preview-column"><MapPanel origin={mapOrigin} destination={mapDestination} recommendations={mapRecommendations} activeId={mapActiveId} onSelect={activate} />{result && appliedOrigin && !editing && active ? <div className="active-route"><div><small>{active.rank}순위</small><strong>{active.name}</strong><span>출발지→주차장 자동차 {active.driveMinutes}분 · 주차장→목적지 도보 {active.walkMinutes}분</span></div><NavigationButtons origin={appliedOrigin} parking={active} compact /></div> : null}<div className="route-summary"><div><Route /><span><strong>{(result ? mapOrigin?.name : origin?.name) || "출발지 미선택"}</strong><small>출발</small></span></div><ArrowRight /><div><Map /><span><strong>{mapDestination?.name || "목적지 미선택"}</strong><small>도착</small></span></div></div>{!result ? <div className="principles"><div><BadgeCheck /><span><strong>위치 최소 사용</strong><small>GPS 좌표를 저장하지 않음</small></span></div><div><Database /><span><strong>데이터 상태 표시</strong><small>실시간·지연·데모 구분</small></span></div><div><CarFront /><span><strong>네이버 길안내</strong><small>네이버지도 연결</small></span></div></div> : null}</div></div></section>
 
     <section className="how"><div className="container"><div className="section-heading"><span className="eyebrow">HOW IT WORKS</span><h2>네이버 경로와 동일한 추천 기준</h2><p>네이버지도는 표시·길안내를 맡고, 추천점수는 거리·요금·빈자리 데이터를 함께 반영합니다.</p></div><div className="how-grid"><div><ParkingCircle /><strong>빈자리 가능성</strong><p>현재 가용면과 도착시간의 불확실성을 반영합니다.</p></div><div><Route /><strong>이동 편의</strong><p>출발지부터 주차장까지 자동차와 목적지까지 도보를 구분해 보여줍니다.</p></div><div><MapPinned /><strong>네이버지도</strong><p>현재 교통 기준 경로와 네이버 길안내로 연결합니다.</p></div></div></div></section>
 

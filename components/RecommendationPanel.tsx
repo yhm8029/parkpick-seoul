@@ -18,10 +18,9 @@ export interface RecommendationPanelProps {
   onMobileViewChange: (view: "map" | "list") => void;
   onEdit: () => void;
   appliedOrigin?: Place | null;
-  onCancel?: () => void;
 }
 
-export function RecommendationPanel({ headingRef, result, activeId, mobileView, onSelect, onMobileViewChange, onEdit, appliedOrigin, onCancel }: RecommendationPanelProps) {
+export function RecommendationPanel({ headingRef, result, activeId, mobileView, onSelect, onMobileViewChange, onEdit, appliedOrigin }: RecommendationPanelProps) {
   const origin = appliedOrigin ?? null;
   return <section className="result-panel" aria-labelledby="recommendation-title">
     <div className="results-head">

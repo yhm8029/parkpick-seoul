@@ -57,7 +57,7 @@ function installNaverHandle(): NaverHandle {
     constructor(...args: unknown[]) {
       handle.constructorCalls.LatLngBounds.push({ args });
     }
-    extend(_coordinate: unknown): void {
+    extend(): void {
       // intentionally a no-op; the test inspects constructor args instead.
     }
   }

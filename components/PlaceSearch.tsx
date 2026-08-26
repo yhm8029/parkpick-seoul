@@ -9,11 +9,17 @@ import { Badge } from "@/components/Badge";
 export function PlaceSearch({ label, placeholder, selected, onSelect, onClear, hint }: { label: string; placeholder: string; selected: Place | null; onSelect: (place: Place) => void; onClear: () => void; hint?: string }) {
   const id = useId(); const root = useRef<HTMLDivElement | null>(null);
   const [query, setQuery] = useState(selected?.name ?? ""); const [results, setResults] = useState<Place[]>([]); const [open, setOpen] = useState(false); const [loading, setLoading] = useState(false); const [active, setActive] = useState(-1); const [mode, setMode] = useState<"LIVE" | "DEMO" | null>(null); const [message, setMessage] = useState<string | null>(null);
-  useEffect(() => setQuery(selected?.name ?? ""), [selected]);
+  const [previousSelected, setPreviousSelected] = useState(selected);
+  if (selected !== previousSelected) {
+    const keepTypedQuery = previousSelected !== null && selected === null && query !== previousSelected.name;
+    setPreviousSelected(selected);
+    if (!keepTypedQuery) setQuery(selected?.name ?? "");
+    setResults([]); setOpen(false); setLoading(false); setActive(-1); setMode(null); setMessage(null);
+  }
   useEffect(() => { const outside = (event: PointerEvent) => { if (!root.current?.contains(event.target as Node)) setOpen(false); }; document.addEventListener("pointerdown", outside); return () => document.removeEventListener("pointerdown", outside); }, []);
   useEffect(() => {
     const trimmed = query.trim();
-    if (trimmed.length < 2 || trimmed === selected?.name) { setResults([]); setMessage(null); setLoading(false); return; }
+    if (trimmed.length < 2 || trimmed === selected?.name) return;
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       setLoading(true);
@@ -36,7 +42,7 @@ export function PlaceSearch({ label, placeholder, selected, onSelect, onClear, h
   };
   return <div className="place-search" ref={root}>
     <label htmlFor={id}>{label}</label>
-    <div className={`search-control${selected ? " is-selected" : ""}`}><Search size={19} /><input id={id} role="combobox" aria-expanded={open} aria-controls={`${id}-list`} aria-activedescendant={active >= 0 ? `${id}-${active}` : undefined} autoComplete="off" placeholder={placeholder} value={query} onKeyDown={keydown} onFocus={() => results.length && setOpen(true)} onChange={event => { setQuery(event.target.value); if (selected && event.target.value !== selected.name) onClear(); }} />{loading ? <LoaderCircle className="spin" size={18} /> : query ? <Button variant="ghost" size="icon" onClick={() => { setQuery(""); setResults([]); setOpen(false); onClear(); }} aria-label={`${label} 지우기`}><X size={17} /></Button> : null}</div>
+    <div className={`search-control${selected ? " is-selected" : ""}`}><Search size={19} /><input id={id} role="combobox" aria-expanded={open} aria-controls={`${id}-list`} aria-activedescendant={active >= 0 ? `${id}-${active}` : undefined} autoComplete="off" placeholder={placeholder} value={query} onKeyDown={keydown} onFocus={() => results.length && setOpen(true)} onChange={event => { const nextQuery = event.target.value; setQuery(nextQuery); if (nextQuery.trim().length < 2) { setResults([]); setOpen(false); setLoading(false); setActive(-1); setMode(null); setMessage(null); } if (selected && nextQuery !== selected.name) onClear(); }} />{loading ? <LoaderCircle className="spin" size={18} /> : query ? <Button variant="ghost" size="icon" onClick={() => { setQuery(""); setResults([]); setOpen(false); setLoading(false); setActive(-1); setMode(null); setMessage(null); onClear(); }} aria-label={`${label} 지우기`}><X size={17} /></Button> : null}</div>
     {selected ? <p className="selected-place"><MapPin size={14} /> {selected.address}{selected.source === "GPS" ? <Badge tone="success">GPS</Badge> : null}</p> : hint ? <p className="field-hint">{hint}</p> : null}
     {open ? <div className="search-popover"><div className="search-popover__head"><span>{results.length}개 장소</span>{mode === "DEMO" ? <Badge tone="demo">데모</Badge> : <Badge tone="success">실검색</Badge>}</div><ul id={`${id}-list`} role="listbox">{results.map((place, index) => <li key={place.id}><button id={`${id}-${index}`} type="button" role="option" aria-selected={active === index} className={active === index ? "is-active" : ""} onMouseEnter={() => setActive(index)} onClick={() => choose(place)}><span><MapPin size={17} /></span><div><strong>{place.name}</strong><small>{place.address}</small></div><em>{place.category}</em></button></li>)}</ul>{message ? <p className="search-message">{message}</p> : null}</div> : null}
   </div>;
