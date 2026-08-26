@@ -113,6 +113,13 @@ async function renderReadyApp(payload: RecommendationResponse = response) {
 }
 
 describe("AppShell recommendation results", () => {
+  it("does not render fixed destination shortcuts", () => {
+    render(<AppShell />);
+    for (const name of ["코엑스", "강남역", "서울역", "더현대 서울", "국립극장"]) {
+      expect(screen.queryByRole("button", { name })).toBeNull();
+    }
+  });
+
   it("uses explicit arrival and stay labels", () => {
     render(<AppShell />);
     expect(screen.getByText("도착 예정시간")).toBeTruthy();
@@ -186,7 +193,7 @@ describe("AppShell recommendation results", () => {
     await user.click(screen.getByRole("button", { name: /예시 채우기/ }));
     await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
 
-    await user.click(screen.getByRole("button", { name: "강남역" }));
+    await user.selectOptions(screen.getByLabelText("예상 체류 시간"), "120");
 
     expect(capturedSignal?.aborted).toBe(true);
     expect(screen.getByRole("heading", { name: "방문 계획 입력" })).toBeTruthy();
@@ -198,7 +205,7 @@ describe("AppShell recommendation results", () => {
     });
 
     expect(screen.queryByRole("heading", { name: "코엑스 주변 추천" })).toBeNull();
-    expect((screen.getByLabelText("목적지 검색") as HTMLInputElement).value).toBe("강남역");
+    expect((screen.getByLabelText("목적지 검색") as HTMLInputElement).value).toBe("코엑스");
     expect(screen.getByTestId("map-recommendation-count").textContent).toBe("0");
   });
 
@@ -313,7 +320,7 @@ describe("AppShell recommendation results", () => {
     await user.click(screen.getByRole("button", { name: /예시 채우기/ }));
 
     await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
-    await user.click(screen.getByRole("button", { name: "강남역" }));
+    await user.selectOptions(screen.getByLabelText("예상 체류 시간"), "120");
     await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
     await screen.findByRole("heading", { name: "코엑스 주변 추천" });
     expect(screen.getByTestId("map-recommendation-count").textContent).toBe("3");
