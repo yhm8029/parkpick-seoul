@@ -95,6 +95,13 @@ const response: RecommendationResponse = {
   ]
 };
 
+const tenResponse: RecommendationResponse = {
+  ...response,
+  recommendations: Array.from({ length: 10 }, (_, index) =>
+    recommendation(index + 1, `주차장 ${index + 1}`),
+  ),
+};
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -156,6 +163,44 @@ describe("AppShell recommendation results", () => {
     expect(screen.getByRole("heading", { name: "주차장 2" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "주차장 3" })).toBeTruthy();
     expect(screen.getAllByText("10분당 600원")).toHaveLength(3);
+    expect(screen.queryByRole("button", { name: /추천 \d+곳 더 보기/ })).toBeNull();
+  });
+
+  it("expands ten recommendations and keeps collapsed selection visible", async () => {
+    const user = await renderReadyApp(tenResponse);
+    await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
+    await screen.findByRole("heading", { name: "코엑스 주변 추천" });
+
+    expect(screen.getByRole("heading", { name: "주차장 1" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "주차장 2" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "주차장 3" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "주차장 4" })).toBeNull();
+    expect(screen.getByTestId("map-recommendation-count").textContent).toBe("3");
+
+    await user.click(screen.getByRole("button", { name: "추천 7곳 더 보기" }));
+    expect(screen.getByTestId("map-recommendation-count").textContent).toBe("10");
+    expect(screen.getByRole("heading", { name: "주차장 10" })).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: /2\s*순위/ }));
+    await user.click(screen.getByRole("button", { name: "접기" }));
+    expect(screen.getByTestId("map-recommendation-count").textContent).toBe("3");
+    expect(screen.getByTestId("map-panel").getAttribute("data-active")).toBe("parking-2");
+
+    await user.click(screen.getByRole("button", { name: "추천 7곳 더 보기" }));
+    await user.click(screen.getByRole("button", { name: /10\s*순위/ }));
+    await user.click(screen.getByRole("button", { name: "접기" }));
+    expect(screen.getByTestId("map-panel").getAttribute("data-active")).toBe("parking-1");
+
+    await user.click(screen.getByRole("button", { name: "추천 7곳 더 보기" }));
+    await user.click(screen.getByRole("button", { name: /10\s*순위/ }));
+    await user.click(screen.getByRole("button", { name: "조건 변경" }));
+    expect(screen.getByTestId("map-recommendation-count").textContent).toBe("3");
+    expect(screen.getByTestId("map-panel").getAttribute("data-active")).toBe("parking-1");
+
+    await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
+    await screen.findByRole("heading", { name: "코엑스 주변 추천" });
+    expect(screen.getByTestId("map-recommendation-count").textContent).toBe("3");
+    expect(screen.getByTestId("map-panel").getAttribute("data-active")).toBe("parking-1");
   });
 
   it("returns to the populated planner with retained map when conditions are edited", async () => {

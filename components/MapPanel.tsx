@@ -208,7 +208,7 @@ export function MapPanel({
           {state === "error" ? <div className="map-error">네이버 지도 인증 정보를 확인해 주세요. 미리보기는 계속 사용할 수 있습니다.</div> : null}
         </div> : null}
       </div>
-      <div className="map-footer"><Badge tone={provider === "NAVER" ? "success" : "demo"}>{provider === "NAVER" ? "NAVER Web Dynamic Map" : "좌표 미리보기"}</Badge><span>출발지 · 목적지 · 추천 1~3순위</span></div>
+      <div className="map-footer"><Badge tone={provider === "NAVER" ? "success" : "demo"}>{provider === "NAVER" ? "NAVER Web Dynamic Map" : "좌표 미리보기"}</Badge><span>{recommendations.length ? `출발지 · 목적지 · 추천 1~${recommendations.length}순위` : "출발지 · 목적지"}</span></div>
     </section>
   );
 }

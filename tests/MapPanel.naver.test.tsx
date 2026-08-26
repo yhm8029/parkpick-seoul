@@ -357,4 +357,18 @@ describe("MapPanel NAVER fitBounds regression", () => {
     await waitFor(() => expect(handle.polylineSetMapCalls).toContain(null));
     expect(handle.constructorCalls.Map).toHaveLength(1);
   });
+
+  it("reflects ten visible recommendations in the footer", () => {
+    render(
+      <MapPanel
+        origin={{ latitude: 37.5665, longitude: 126.978 }}
+        destination={buildDestination()}
+        recommendations={Array.from({ length: 10 }, (_, index) =>
+          recommendation(index + 1, 37.4979 + index * 0.0001, 127.0276),
+        )}
+      />,
+    );
+
+    expect(screen.getByText("출발지 · 목적지 · 추천 1~10순위")).toBeTruthy();
+  });
 });
