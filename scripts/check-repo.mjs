@@ -97,12 +97,13 @@ await runCheck("configuration JSON", async () => {
 await runCheck("environment template", async () => {
   const required = [
     "SEOUL_OPEN_API_KEY",
-    "KAKAO_REST_API_KEY",
-    "KAKAO_MOBILITY_REST_API_KEY",
-    "NEXT_PUBLIC_KAKAO_MAP_JAVASCRIPT_KEY",
-    "NEXT_PUBLIC_KAKAO_JAVASCRIPT_KEY",
     "NEXT_PUBLIC_NAVER_MAP_NCP_KEY_ID",
+    "NAVER_MAP_NCP_KEY_ID",
+    "NAVER_MAP_NCP_CLIENT_SECRET",
+    "NAVER_API_HUB_KEY_ID",
+    "NAVER_API_HUB_KEY",
     "NEXT_PUBLIC_NAVER_APP_NAME",
+    "NEXT_PUBLIC_SITE_URL",
   ];
   const content = await readFile(path.join(root, ".env.example"), "utf8");
   const missing = required.filter((key) => !new RegExp(`^${key}=`, "m").test(content));

@@ -1,0 +1,59 @@
+name: 기능 제안
+description: 해결하고 싶은 사용자 문제와 제안 동작을 알려주세요.
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 해결하려는 문제
+      description: 현재 어떤 상황이 불편한지 사용자 관점에서 설명해 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 제안하는 동작
+      description: 화면이나 데이터가 어떻게 달라지면 좋은지 설명해 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: benefit
+    attributes:
+      label: 기대 효과
+      description: 누구에게 어떤 가치가 생기는지 설명해 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 검토한 대안
+      description: 다른 해결 방법이나 현재 사용 중인 우회 방법이 있다면 적어 주세요.
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 관련 영역
+      multiple: true
+      options:
+        - 장소검색/GPS
+        - 주차장 데이터/추천
+        - 지도/경로/길안내
+        - 요금/빈자리 표시
+        - 모바일/PWA
+        - 문서/개발환경
+        - 기타
+    validations:
+      required: true
+  - type: textarea
+    id: provider
+    attributes:
+      label: 외부 데이터 또는 공급자 고려사항
+      description: 필요한 API, 라이선스, 비용 또는 실시간 데이터 제약을 알고 있다면 적어 주세요.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: 보안 확인
+      options:
+        - label: 제안 내용에 API 키, Secret, 토큰 또는 개인정보를 포함하지 않았습니다.
+          required: true

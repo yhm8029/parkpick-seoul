@@ -1,0 +1,72 @@
+name: 버그 제보
+description: 재현 가능한 오류나 잘못된 동작을 알려주세요.
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        제보 전에 최신 production 또는 `main`에서 같은 문제가 발생하는지 확인해 주세요.
+        API 키, Secret, 토큰, 개인정보와 정확한 GPS 좌표는 반드시 제거하세요.
+  - type: textarea
+    id: summary
+    attributes:
+      label: 문제 요약
+      description: 무엇이 잘못 동작하는지 한두 문장으로 설명해 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 재현 절차
+      description: 처음 보는 사람도 따라 할 수 있도록 번호를 붙여 작성해 주세요.
+      placeholder: |
+        1. 출발지를 ...로 선택
+        2. 목적지를 ...로 검색
+        3. 추천 버튼을 누름
+        4. ...가 발생
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대한 결과
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 실제 결과
+    validations:
+      required: true
+  - type: dropdown
+    id: target
+    attributes:
+      label: 실행 환경
+      options:
+        - Production (parkpick-seoul.vercel.app)
+        - 로컬 개발 서버
+        - 로컬 production build
+        - 기타 배포 환경
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: 브라우저와 기기
+      placeholder: 예) Chrome 140 / Windows 11, Safari / iPhone 16
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 로그 또는 스크린샷
+      description: 비밀값과 개인정보를 가린 뒤 첨부해 주세요.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: 보안 확인
+      options:
+        - label: API 키, Secret, 토큰, 개인정보와 정확한 위치를 모두 제거했습니다.
+          required: true

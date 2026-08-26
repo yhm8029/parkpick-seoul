@@ -1,156 +1,112 @@
 # ParkPick Seoul
 
-GPS 출발지와 목적지를 기준으로 서울 공영주차장의 빈자리, 예상요금, 자동차·도보 이동시간과 만차 위험을 비교하고 **네이버지도 경로와 길안내로 연결하는 모바일 우선 PWA**입니다.
+목적지만 정하면 서울 공영주차장 후보를 비교하고, 현재 위치에서 선택한 주차장까지의 NAVER 교통 경로를 보여주는 모바일 우선 PWA입니다.
 
-> 지금 출발하면 어디에 주차하는 것이 가장 유리한가?
+**운영 서비스:** [parkpick-seoul.vercel.app](https://parkpick-seoul.vercel.app)
 
-![ParkPick Seoul preview](docs/ui-preview.svg)
+![ParkPick Seoul 미리보기](docs/ui-preview.svg)
 
-## 구현된 기본 기능
+## 바로 사용하기
 
-- 사용자가 버튼을 누른 뒤에만 GPS 권한 요청
-- 권한 허용·거부·시간초과·미지원·비보안 연결 상태 처리
-- GPS 없이 출발지를 직접 검색하는 폴백
-- 네이버 API HUB 지역검색 기반 출발지·목적지 검색과 API 키가 없는 데모 검색
-- 서울시 `GetParkingInfo` 어댑터와 데모 데이터 폴백
-- 체류시간 기준 예상 주차요금
-- 빈자리·도보·요금·자동차 이동·데이터 신뢰도 추천점수
-- 균형·저렴·가까움·주차확실 모드
-- 추천 1~3순위와 대체 주차장
-- **웹앱 지도: 현재 위치 또는 서울 중심에서 시작하는 네이버 Web Dynamic Map**
-- **현재 위치→상위 주차장 NAVER Directions 5 교통시간·거리·경로선**
-- **외부 길안내: 네이버지도 내비게이션 URL Scheme**
-- Vercel Analytics 기반 TODAY / 30 DAYS 익명 방문자 집계(토큰 설정 시)
-- Android 네이버지도 Intent, iOS 앱 미설치 스토어 폴백
-- PWA manifest, 홈 화면 설치, 서비스워커, 오프라인 화면
-- 모바일 하단 고정 출발 버튼
-- 단위 테스트와 로컬 전체 검증 명령
+1. `현재 위치 사용`을 눌러 출발지를 정하거나 장소를 직접 검색합니다.
+2. 목적지를 검색하고 도착 예정시간, 예상 체류 시간, 추천 기준을 선택합니다.
+3. 추천된 공영주차장 1~3곳의 빈자리, 요금, 자동차 이동, 도보 거리와 데이터 신뢰도를 비교합니다.
+4. 선택한 주차장까지의 NAVER 경로를 확인하고 네이버지도로 길안내를 이어갑니다.
 
-현재 버전은 기본 틀입니다. 과거 주차 스냅샷 DB는 아직 저장하지 않으므로 도착시점 예상은 현재 가용면, 최근 추세가 있을 경우의 증감, 데이터 지연을 이용한 범위입니다. 요일·시간대 패턴 예측은 다음 단계입니다.
+위치 권한은 사용자가 버튼을 누르기 전에는 요청하지 않습니다. GPS 없이도 출발지를 직접 검색할 수 있습니다.
 
-## 실행
+## 무엇을 제공하나요?
 
-```bash
+- NAVER API HUB 기반 출발지·목적지 실제 장소검색
+- NAVER Web Dynamic Map 기반 현재 위치·목적지·추천 주차장 표시
+- 서울 주차 포털의 공영 노상(`NS`)·공영 노외(`NW`)·공공시설 부설(`BP`) 주차장과 장애 시 서울 열린데이터 대체 소스
+- 빈자리, 요금, 도보 거리, 자동차 이동시간, 최신성을 반영한 상위 1~3곳 추천
+- NAVER Directions 5의 현재 교통시간·거리·경로선과 혼잡 구간
+- 체류시간 기준 예상 주차요금과 요금 단위
+- 네이버지도 앱·웹 길안내 handoff
+- 설치 가능한 PWA, 오프라인 안내 화면, 반응형 지도/목록 전환
+- 선택 설정 시 Vercel Web Analytics 기반 `TODAY` / `30 DAYS` 익명 방문자 집계
+
+현재 런타임은 NAVER 지도·검색·길찾기만 사용합니다. 과거 Kakao 연동 코드는 잠재적 후속 지원을 위해 dormant source로만 보존됩니다.
+
+## 데이터와 정확도
+
+표시값마다 의미가 다릅니다.
+
+| 표시              | 의미                                                                                       |
+| ----------------- | ------------------------------------------------------------------------------------------ |
+| 주차장까지 자동차 | 출발지 → 주차장, NAVER Directions 5 현재 교통 기준. 공급자 실패 시 거리 기반 추정으로 명시 |
+| 목적지까지 도보   | 주차장 → 목적지의 거리 기반 추정. 보행 경로 API 결과가 아님                                |
+| 현재 빈자리       | 서울 주차 포털이 실시간 잔여면을 제공하는 주차장만 표시                                    |
+| 확인 불가         | 해당 주차장의 실시간 잔여면을 공급자가 제공하지 않음                                       |
+| 추천 대상         | 공영 노상·노외와 공공시설 부설만 포함. 일반 부설(`BS`)·민영 노외(`NP`)는 제외              |
+| 예상요금          | 현재 요금 규칙과 선택한 체류시간으로 계산한 할인 전 예상값                                 |
+
+교통시간은 요청 시점 교통상황에 따라 달라지며 네이버지도 앱에서 다시 조회한 값과 차이가 날 수 있습니다. 추천 결과는 주차 가능을 보장하지 않습니다.
+
+## 빠른 로컬 실행
+
+요구사항은 Node.js 22 이상입니다.
+
+```powershell
+git clone https://github.com/yhm8029/parkpick-seoul.git
+cd parkpick-seoul
 npm ci
-cp .env.example .env.local
-npm run dev:https
+Copy-Item .env.example .env.local
+npm run dev -- -H 127.0.0.1 -p 3000
 ```
 
-API 키가 없어도 데모 모드로 모든 입력·추천·지도 미리보기 흐름을 확인할 수 있습니다.
+브라우저에서 <http://127.0.0.1:3000>을 엽니다. NAVER 키가 없으면 장소검색은 데모, 지도는 미리보기로 폴백합니다. 서울 주차 포털의 기본 근접 검색은 별도 키 없이 동작하지만, 포털 장애 시 대체 소스를 쓰려면 `SEOUL_OPEN_API_KEY`가 필요합니다.
 
 ## 환경변수
 
-| 변수 | 용도 |
-|---|---|
-| `SEOUL_OPEN_API_KEY` | 서울시 시영주차장 실시간 데이터 |
-| `NEXT_PUBLIC_NAVER_MAP_NCP_KEY_ID` | 웹앱 안의 네이버 Web Dynamic Map |
-| `NAVER_MAP_NCP_KEY_ID` | 서버 전용 네이버 Geocoding·Directions 5 Client ID |
-| `NAVER_MAP_NCP_CLIENT_SECRET` | 서버 전용 네이버 Client Secret |
-| `NAVER_API_HUB_KEY_ID` | 서버 전용 네이버 API HUB 지역검색 Client ID |
-| `NAVER_API_HUB_KEY` | 서버 전용 네이버 API HUB 지역검색 Client Secret |
-| `NEXT_PUBLIC_NAVER_APP_NAME` | 네이버지도 앱 URL Scheme 필수 `appname`; 배포 웹 URL 권장 |
-| `VERCEL_ANALYTICS_TOKEN` | 선택: TODAY / 30 DAYS 집계 API 토큰 |
-| `VERCEL_ANALYTICS_TEAM_ID` | 선택: Vercel 팀 ID |
-| `NEXT_PUBLIC_SITE_URL` | 배포 URL |
-| `NEXT_PUBLIC_GITHUB_REPO_URL` | 헤더 GitHub 링크 |
+실제 값은 `.env.local` 또는 배포 플랫폼의 Secret에만 저장합니다.
 
-네이버 지도 JavaScript API의 현재 로딩 파라미터는 기존 `ncpClientId`가 아니라 `ncpKeyId`입니다. 네이버 콘솔에 `localhost`와 실제 배포 도메인을 등록하고 같은 Application에서 Web Dynamic Map, Geocoding, Directions 5를 활성화해야 합니다. Kakao 구현은 향후 지원 가능성을 위해 dormant source로만 보존합니다.
+| 변수                               | 공개 여부          | 용도                                |
+| ---------------------------------- | ------------------ | ----------------------------------- |
+| `SEOUL_OPEN_API_KEY`               | 서버 전용          | 서울 열린데이터 대체 주차장 소스    |
+| `NEXT_PUBLIC_NAVER_MAP_NCP_KEY_ID` | 브라우저 공개      | NAVER Web Dynamic Map               |
+| `NAVER_MAP_NCP_KEY_ID`             | 서버 전용          | NAVER Geocoding·Directions 5 Key ID |
+| `NAVER_MAP_NCP_CLIENT_SECRET`      | 서버 전용          | NAVER Maps API Key                  |
+| `NAVER_API_HUB_KEY_ID`             | 서버 전용          | NAVER API HUB 지역검색 Key ID       |
+| `NAVER_API_HUB_KEY`                | 서버 전용          | NAVER API HUB 지역검색 Key          |
+| `NEXT_PUBLIC_NAVER_APP_NAME`       | 브라우저 공개      | 네이버지도 URL Scheme의 `appname`   |
+| `VERCEL_ANALYTICS_TOKEN`           | 서버 전용·선택     | 방문자 집계 API 토큰                |
+| `VERCEL_ANALYTICS_TEAM_ID`         | 서버 전용·선택     | 방문자 집계 팀 ID                   |
+| `NEXT_PUBLIC_SITE_URL`             | 브라우저 공개      | 운영 웹 URL                         |
+| `NEXT_PUBLIC_GITHUB_REPO_URL`      | 브라우저 공개·선택 | 헤더 GitHub 링크                    |
 
-### 실제 실시간 데이터(LIVE 결합)
+NAVER Maps Application과 NAVER API HUB Application은 서로 다른 자격증명을 사용합니다. 자세한 설정은 [배포 가이드](DEPLOY.md)를 참고하세요.
 
-`SEOUL_OPEN_API_KEY`가 설정되어 있으면 `GetParkingInfo` 실시간 행과 `GetParkInfo`의 정적 `LAT`/`LOT`를 정확히 같은 `PKLT_CD`로 결합합니다. 이름·주소·전화번호, 수용량·점유량·갱신시각·요금은 실시간 행을 사용하고 좌표만 정적 행에서 가져옵니다. 좌표가 잘못됐거나 매칭되지 않은 행, 중복된 실시간 `PKLT_CD`, 수용량이 없거나 0 이하인 행은 제외합니다. 결합 결과가 3건 미만이면 실패 종료되어 기존 `FALLBACK` 경로를 사용합니다.
+## 검증과 배포
 
-fixture 기반 LIVE 결합 회귀 검증은 완료했습니다. 운영시간·공휴일 의미와 과거 추세 데이터는 아직 구현하지 않았습니다.
-
-## 지도와 네비 역할
-
-```text
-추천 엔진
-  ├─ 서울시 주차정보
-  ├─ 요금 계산
-  ├─ 빈자리·신뢰도 점수
-  └─ 상위 3곳
-       │
-       └─ 네이버 교통 경로 확인 → 네이버지도 내비 출발
-```
-
-상위 후보는 거리·요금·빈자리 점수로 고른 뒤 NAVER Directions 5의 현재 교통 경로를 반영합니다. 지도는 선택한 주차장의 경로와 혼잡 구간을 표시합니다.
-
-## 추천점수
-
-| 항목 | 균형 모드 |
-|---|---:|
-| 도착시점 빈자리 가능성 | 35% |
-| 목적지 도보편의 | 25% |
-| 예상 주차요금 | 20% |
-| 자동차 우회시간 | 15% |
-| 데이터 최신성 | 5% |
-
-## 구조
-
-```text
-app/api/                   장소검색·추천 Route Handler
-components/MapPanel.tsx    네이버 지도·경로선 Provider
-components/NavigationButtons.tsx  네이버지도 앱 handoff
-hooks/use-geolocation.ts   GPS 권한·오류 상태
-lib/api/                   서울시·네이버 외부 API 어댑터
-lib/domain/                거리·요금·추천 순수 로직
-public/sw.js               최소 PWA 서비스워커
-SPEC.md                    상세 제품·기술 명세
-```
-
-## 참고한 공개 프로젝트
-
-직접 코드를 복사하지 않고 구조적 관례를 참고했습니다.
-
-- `shadcn-ui/ui`: 작은 UI primitive와 접근성 중심 컴포넌트 경계
-- `TanStack/query`: 서버상태와 화면상태 분리 원칙
-- `serwist/serwist`: PWA·서비스워커 책임 분리
-- `vercel/next.js`: App Router, Route Handler, manifest 패턴
-
-현재 기본 틀은 의존성을 작게 유지하기 위해 위 라이브러리들을 직접 설치하지 않고 책임 분리만 적용했습니다.
-
-## 로컬 검증 후 커밋·푸시
-
-이 저장소는 GitHub Actions를 사용하지 않습니다. 외부 CI에 의존하지 않고, 변경한 컴퓨터에서 직접 검증한 뒤 커밋·푸시합니다.
-
-외부 패키지를 설치하지 못하는 제한된 환경에서도 실행 가능한 자체 검사:
-
-```bash
-npm run check:repo
-```
-
-이 검사는 Actions 워크플로 부재, JSON 설정, `.env.example` 필수 키, 전체 TypeScript/TSX 구문, 주차요금·추천순위·경로·예측 핵심 로직, PWA 자산과 서비스워커 캐시, 비밀파일 추적 여부와 Git 공백 오류를 확인합니다.
-
-의존성 설치가 가능한 개발 환경의 전체 검증:
-
-```bash
-npm ci
+```powershell
 npm run verify
+npx vercel --prod --yes
 ```
 
-`verify`는 `check:repo → ESLint → TypeScript typecheck → Vitest → Next.js production build` 순서로 실행합니다. 모두 통과한 뒤에만 커밋합니다.
+`verify`는 저장소 검사, ESLint, TypeScript, Vitest와 Next.js production build를 순서대로 실행합니다. 실제 공급자 검증은 [검증 가이드](VALIDATION.md)에 분리되어 있습니다.
 
-```bash
-git add -A
-git commit -m "변경 내용"
-git push origin main
-```
+## 문서
 
-## 다음 단계
+- [제품 동작 명세](SPEC.md)
+- [아키텍처](docs/ARCHITECTURE.md)
+- [배포 가이드](DEPLOY.md)
+- [검증 가이드](VALIDATION.md)
+- [로드맵](ROADMAP.md)
+- [공식 참고자료](docs/REFERENCES.md)
+- [상업용 라이선스 문의 안내](COMMERCIAL-LICENSE.md)
 
-- Supabase/Postgres에 5분 주차 스냅샷 적재
-- 요일 × 10분 시간대 패턴과 백테스트
-- NAVER Directions 결과 캐시와 호출량 모니터링
-- 실제 주차 성공·만차 피드백
-- 전기차·장애인 주차면 필터
+`docs/superpowers/specs`와 `docs/superpowers/plans`는 구현 의사결정과 작업 이력을 보존합니다.
 
 ## 라이선스
 
-ParkPick Seoul 0.2.0부터 [Business Source License 1.1](./LICENSE)을 적용합니다.
+ParkPick Seoul 0.2.0 이상은 [Business Source License 1.1](LICENSE)로 배포됩니다.
 
-- 개인·교육·연구·평가·개발·테스트 및 라이선스에 명시된 비상업적 사용: 별도 비용 없이 허용
-- 상업용 프로덕션, 유료 서비스 또는 수익형 배포: 별도 유료 라이선스 필요
-- 2030-08-26부터: Apache License 2.0으로 전환
+- 개인, 교육, 연구, 평가와 비상업적 프로덕션 사용: Additional Use Grant 범위에서 무료
+- 개발·테스트 등 비프로덕션 사용: BSL 1.1 기본 조건에 따라 허용
+- 상업용 프로덕션, 유료 서비스 또는 수익형 배포: 별도 상업용 라이선스 필요
+- Change Date: 2030-08-26
+- Change License: Apache-2.0
 
-상업용 이용은 [Commercial licensing 안내](./COMMERCIAL-LICENSE.md)를 확인해 주세요.
+상업용 조건은 [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md)를 확인하세요. 프로젝트 저작권 고지는 [NOTICE](NOTICE)에 있습니다.
