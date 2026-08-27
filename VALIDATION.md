@@ -82,7 +82,7 @@ $result.recommendations | Select-Object rank,name,driveMinutes,driveDistanceMete
 
 기대 결과:
 
-- 추천 1~3건
+- 추천 0~10건이며 후보가 4건 이상이면 UI는 처음 3건만 표시
 - 정상 Maps 설정에서는 `routeSource`가 `NAVER_DIRECTIONS`
 - `driveMinutes`와 `driveDistanceMeters`가 양수
 - `routePath`에 실제 경로점 존재
@@ -105,6 +105,8 @@ $result.recommendations | Select-Object rank,name,driveMinutes,driveDistanceMete
 - 검색어 입력 후 실제 NAVER 결과 선택 가능
 - 입력 변경 시 진행 중 추천 취소 및 입력 모드 유지
 - 추천 성공 시 입력 패널이 카드 목록으로 교체
+- 후보가 4곳 이상이면 `추천 N곳 더 보기`로 카드와 지도 마커가 함께 펼쳐지고 `접기`로 상위 3곳에 복귀
+- 접힌 뒤 선택 후보가 숨겨지는 경우 카드·경로·모바일 바가 1순위로 함께 복귀
 - `조건 변경` 시 기존 입력값 보존
 
 ### 데이터 의미

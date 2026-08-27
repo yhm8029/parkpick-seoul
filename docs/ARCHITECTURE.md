@@ -23,8 +23,8 @@ Server adapters and domain
 ├─ NAVER API HUB Local Search → Geocoding → demo places
 ├─ Seoul Parking Portal nearby search → NS/NW/BP allowlist
 ├─ portal exception only → GetParkInfo + GetParkingInfo fallback
-├─ AUTO nearest 3 / MANUAL scored top 3 shortlist
-├─ NAVER Directions 5 enrichment (maximum 3 calls)
+├─ AUTO nearest 10 / MANUAL scored top 10 shortlist
+├─ NAVER Directions 5 enrichment (maximum 10 parallel calls)
 └─ normalized RecommendationResponse
 ```
 
@@ -44,10 +44,12 @@ Vercel 함수는 서울 주차 포털과 NAVER Maps의 한국 리전 네트워�
 
 Directions 호출량을 제한하기 위해 다음 2단계를 사용합니다.
 
-1. `AUTO`는 1km 안의 목적지 최단거리 3곳을 고정하고, `MANUAL`은 선택 반경 안 전체 후보를 점수화해 상위 3곳을 고정
-2. 확정한 세 곳만 `Promise.all` 기반 NAVER Directions 5 병렬 조회
+1. `AUTO`는 1km 안의 목적지 최단거리 최대 10곳을 고정하고, `MANUAL`은 선택 반경 안 전체 후보를 점수화해 상위 10곳을 고정
+2. 확정한 최대 10곳만 `Promise.all` 기반 NAVER Directions 5 병렬 조회
 
 경로 실패는 후보별로 격리합니다. 실패한 후보만 `ESTIMATE`로 남고 추천 전체 요청은 계속 성공할 수 있습니다. UI에는 정규화한 분·미터·좌표·혼잡 구간만 전달합니다.
+
+후보별 geometry는 경로점 2,500개와 혼잡 구간 256개로 제한해 응답 전체를 최대 25,000개 좌표와 2,560개 구간으로 묶습니다. UI는 이 결과 중 상위 3개를 먼저 표시하고 사용자가 펼칠 때만 최대 10개의 카드와 마커를 함께 전달합니다. 요청당 Directions 호출은 최대 10회이며 분산 rate limit은 별도 범위로 두고 NAVER Cloud 한도와 알림으로 운영 사용량을 관리합니다.
 
 ## 지도 생명주기
 
