@@ -104,6 +104,7 @@ const tenResponse: RecommendationResponse = {
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
@@ -164,6 +165,44 @@ describe("AppShell recommendation results", () => {
     expect(screen.getByRole("heading", { name: "주차장 3" })).toBeTruthy();
     expect(screen.getAllByText("10분당 600원")).toHaveLength(3);
     expect(screen.queryByRole("button", { name: /추천 \d+곳 더 보기/ })).toBeNull();
+  });
+
+  it("refreshes visible results every two minutes without resetting result UI state", async () => {
+    vi.useFakeTimers();
+    const refreshed = {
+      ...tenResponse,
+      recommendations: tenResponse.recommendations.map((item) =>
+        item.id === "parking-2" ? { ...item, availableSpaces: 31 } : item,
+      ),
+    };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => tenResponse })
+      .mockResolvedValueOnce({ ok: true, json: async () => refreshed });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<AppShell />);
+    fireEvent.click(screen.getByRole("button", { name: /예시 채우기/ }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "추천 7곳 더 보기" }));
+    fireEvent.click(screen.getByRole("button", { name: /2\s*순위/ }));
+
+    act(() => vi.advanceTimersByTime(119_999));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      vi.advanceTimersByTime(1);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId("map-recommendation-count").textContent).toBe("10");
+    expect(screen.getByTestId("map-panel").getAttribute("data-active")).toBe("parking-2");
+    expect(screen.getByText("31면")).toBeTruthy();
   });
 
   it("expands ten recommendations and keeps collapsed selection visible", async () => {
