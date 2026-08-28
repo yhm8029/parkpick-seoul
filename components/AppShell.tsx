@@ -16,6 +16,7 @@ import { clamp, localInputToIso, toLocalDateTimeInput } from "@/lib/utils";
 const cityHall = DEMO_PLACES.find(place => place.id === "city-hall") as Place;
 const coex = DEMO_PLACES.find(place => place.id === "coex") as Place;
 const INITIAL_VISIBLE_RECOMMENDATIONS = 3;
+const AUTO_REFRESH_INTERVAL_MS = 2 * 60_000;
 const profileItems: Array<{ value: RecommendationProfile; label: string; sub: string }> = [
   { value: "BALANCED", label: "균형", sub: "빈자리·거리·요금" },
   { value: "CHEAP", label: "저렴", sub: "주차비 우선" },
@@ -27,6 +28,7 @@ const PROFILE_SELECTOR_ENABLED = false;
 
 type DistanceMode = "AUTO" | "MANUAL";
 type DraftRevision = number;
+type RecommendationRunMode = "manual" | "background";
 
 function clampManualDistance(value: number): number {
   if (!Number.isFinite(value)) return 1_000;
@@ -61,10 +63,12 @@ export function AppShell() {
   const [resultsExpanded, setResultsExpanded] = useState(false);
   const [, setDraftRevision] = useState<DraftRevision>(0);
   const draftRevisionRef = useRef<DraftRevision>(0);
-  const activeControllerRef = useRef<AbortController | null>(null);
+  const backgroundControllerRef = useRef<AbortController | null>(null);
 
   const resultHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const requestControllerRef = useRef<AbortController | null>(null);
+  const lastSuccessfulRequestAtRef = useRef<number | null>(null);
+  const shouldFocusResultHeadingRef = useRef(false);
 
   const cancelInFlight = useCallback(() => {
     requestControllerRef.current?.abort();
@@ -91,11 +95,14 @@ export function AppShell() {
   }, [cancelInFlight, collapseResults, result]);
 
   useEffect(() => {
-    if (result) resultHeadingRef.current?.focus();
+    if (!result || !shouldFocusResultHeadingRef.current) return;
+    shouldFocusResultHeadingRef.current = false;
+    resultHeadingRef.current?.focus();
   }, [result]);
   useEffect(() => () => {
     const controller = requestControllerRef.current;
     requestControllerRef.current = null;
+    backgroundControllerRef.current = null;
     controller?.abort();
   }, []);
 
@@ -149,17 +156,24 @@ export function AppShell() {
     bumpDraftRevision();
   }, [manualDistanceTouched, result?.effectiveDistanceMeters, bumpDraftRevision]);
 
-  const recommend = async () => {
-    if (!origin || !destination) { setError("출발지와 목적지를 모두 선택해 주세요."); return; }
-    cancelInFlight();
+  const runRecommendation = useCallback(async (mode: RecommendationRunMode) => {
+    const background = mode === "background";
+    if (!origin || !destination) {
+      if (!background) setError("출발지와 목적지를 모두 선택해 주세요.");
+      return;
+    }
+    if (background && requestControllerRef.current) return;
+    if (!background) cancelInFlight();
     const controller = new AbortController();
     requestControllerRef.current = controller;
-    activeControllerRef.current = controller;
+    if (background) backgroundControllerRef.current = controller;
     const submitRevision = draftRevisionRef.current;
     const isStale = () => requestControllerRef.current !== controller || controller.signal.aborted || draftRevisionRef.current !== submitRevision;
-    setLoading(true);
-    setError(null);
-    setEmptyDistance(false);
+    if (!background) {
+      setLoading(true);
+      setError(null);
+      setEmptyDistance(false);
+    }
     const manualDistanceSnapshot = clampManualDistance(manualDistance);
     const distanceSelection = distanceMode === "MANUAL"
       ? { distanceMode: "MANUAL" as const, maxDistanceMeters: manualDistanceSnapshot }
@@ -178,6 +192,7 @@ export function AppShell() {
       const payload = await response.json().catch(() => null) as RecommendationResponse | null;
       if (isStale()) return;
       if (!response.ok || !payload || !Array.isArray(payload.recommendations)) {
+        if (background) return;
         if (result) {
           setRetainedResult(true);
           setError(null);
@@ -186,7 +201,18 @@ export function AppShell() {
         }
         return;
       }
+      lastSuccessfulRequestAtRef.current = Date.now();
+      if (background) {
+        setResult(payload);
+        setActiveId((current) =>
+          current && payload.recommendations.some((item) => item.id === current)
+            ? current
+            : payload.recommendations[0]?.id ?? null,
+        );
+        return;
+      }
       const snapshotOrigin: Place = { ...origin };
+      shouldFocusResultHeadingRef.current = true;
       setAppliedOrigin(snapshotOrigin);
       setResult(payload);
       collapseResults(payload.recommendations);
@@ -200,7 +226,7 @@ export function AppShell() {
         setEditing(true);
       }
     } catch (reason) {
-      if (isStale()) return;
+      if (isStale() || background) return;
       if (result) {
         setRetainedResult(true);
         setError(null);
@@ -210,13 +236,48 @@ export function AppShell() {
     } finally {
       if (requestControllerRef.current === controller) {
         requestControllerRef.current = null;
-        setLoading(false);
+        if (!background) setLoading(false);
       }
-      if (activeControllerRef.current === controller) {
-        activeControllerRef.current = null;
+      if (backgroundControllerRef.current === controller) {
+        backgroundControllerRef.current = null;
       }
     }
-  };
+  }, [arrival, cancelInFlight, collapseResults, destination, distanceMode, duration, manualDistance, origin, profile, result]);
+
+  const recommend = useCallback(() => {
+    void runRecommendation("manual");
+  }, [runRecommendation]);
+
+  useEffect(() => {
+    if (!result || editing) return;
+    const refresh = () => {
+      if (document.visibilityState === "visible") void runRecommendation("background");
+    };
+    const interval = window.setInterval(refresh, AUTO_REFRESH_INTERVAL_MS);
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== "visible") {
+        const controller = backgroundControllerRef.current;
+        if (controller) {
+          backgroundControllerRef.current = null;
+          if (requestControllerRef.current === controller) requestControllerRef.current = null;
+          controller.abort();
+        }
+        return;
+      }
+      const lastSuccess = lastSuccessfulRequestAtRef.current;
+      if (
+        lastSuccess !== null &&
+        Date.now() - lastSuccess >= AUTO_REFRESH_INTERVAL_MS
+      ) {
+        void runRecommendation("background");
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [editing, result, runRecommendation]);
 
   const demo = () => {
     cancelInFlight();
