@@ -21,6 +21,8 @@ it("explains both travel legs and unsupported realtime availability", () => {
     reasons: [], warnings: [], scoreBreakdown: { availability: 0, walk: 0, cost: 0, drive: 0, reliability: 0 },
   } satisfies ParkingRecommendation;
   render(<ParkingCard origin={origin} parking={parking} active onSelect={vi.fn()} />);
+  expect(screen.queryByRole("button", { name: /50\s*점/ })).toBeNull();
+  expect(screen.getByRole("button", { name: /1\s*순위/ })).toBeTruthy();
   expect(screen.getByText("공공시설 부설")).toBeTruthy();
   expect(screen.getByText("주차장까지 자동차")).toBeTruthy();
   expect(screen.getByText("출발지 → 주차장 · 현재 교통 기준")).toBeTruthy();
