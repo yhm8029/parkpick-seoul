@@ -63,7 +63,7 @@ export function AppShell() {
   const [resultsExpanded, setResultsExpanded] = useState(false);
   const [, setDraftRevision] = useState<DraftRevision>(0);
   const draftRevisionRef = useRef<DraftRevision>(0);
-  const activeControllerRef = useRef<AbortController | null>(null);
+  const backgroundControllerRef = useRef<AbortController | null>(null);
 
   const resultHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const requestControllerRef = useRef<AbortController | null>(null);
@@ -102,6 +102,7 @@ export function AppShell() {
   useEffect(() => () => {
     const controller = requestControllerRef.current;
     requestControllerRef.current = null;
+    backgroundControllerRef.current = null;
     controller?.abort();
   }, []);
 
@@ -165,7 +166,7 @@ export function AppShell() {
     if (!background) cancelInFlight();
     const controller = new AbortController();
     requestControllerRef.current = controller;
-    activeControllerRef.current = controller;
+    if (background) backgroundControllerRef.current = controller;
     const submitRevision = draftRevisionRef.current;
     const isStale = () => requestControllerRef.current !== controller || controller.signal.aborted || draftRevisionRef.current !== submitRevision;
     if (!background) {
@@ -237,8 +238,8 @@ export function AppShell() {
         requestControllerRef.current = null;
         if (!background) setLoading(false);
       }
-      if (activeControllerRef.current === controller) {
-        activeControllerRef.current = null;
+      if (backgroundControllerRef.current === controller) {
+        backgroundControllerRef.current = null;
       }
     }
   }, [arrival, cancelInFlight, collapseResults, destination, distanceMode, duration, manualDistance, origin, profile, result]);
@@ -254,9 +255,17 @@ export function AppShell() {
     };
     const interval = window.setInterval(refresh, AUTO_REFRESH_INTERVAL_MS);
     const onVisibilityChange = () => {
+      if (document.visibilityState !== "visible") {
+        const controller = backgroundControllerRef.current;
+        if (controller) {
+          backgroundControllerRef.current = null;
+          if (requestControllerRef.current === controller) requestControllerRef.current = null;
+          controller.abort();
+        }
+        return;
+      }
       const lastSuccess = lastSuccessfulRequestAtRef.current;
       if (
-        document.visibilityState === "visible" &&
         lastSuccess !== null &&
         Date.now() - lastSuccess >= AUTO_REFRESH_INTERVAL_MS
       ) {

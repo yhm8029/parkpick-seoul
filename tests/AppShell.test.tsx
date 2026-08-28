@@ -175,7 +175,12 @@ describe("AppShell recommendation results", () => {
         item.id === "parking-2" ? { ...item, availableSpaces: 31 } : item,
       ),
     };
-    const fetchMock = vi.fn()
+    type RecommendationFetch = (
+      input: string | URL | Request,
+      init?: RequestInit,
+    ) => Promise<{ ok: boolean; json: () => Promise<RecommendationResponse> }>;
+    const fetchMock = vi.fn<RecommendationFetch>()
+      .mockResolvedValue({ ok: true, json: async () => refreshed })
       .mockResolvedValueOnce({ ok: true, json: async () => tenResponse })
       .mockResolvedValueOnce({ ok: true, json: async () => refreshed });
     vi.stubGlobal("fetch", fetchMock);
@@ -203,6 +208,16 @@ describe("AppShell recommendation results", () => {
     expect(screen.getByTestId("map-recommendation-count").textContent).toBe("10");
     expect(screen.getByTestId("map-panel").getAttribute("data-active")).toBe("parking-2");
     expect(screen.getByText("31면")).toBeTruthy();
+
+    fetchMock.mockImplementationOnce(() => new Promise(() => undefined));
+    act(() => vi.advanceTimersByTime(120_000));
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    const backgroundSignal = fetchMock.mock.calls[2]?.[1]?.signal;
+
+    const visibility = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+    act(() => document.dispatchEvent(new Event("visibilitychange")));
+    expect(backgroundSignal?.aborted).toBe(true);
+    visibility.mockRestore();
   });
 
   it("expands ten recommendations and keeps collapsed selection visible", async () => {
