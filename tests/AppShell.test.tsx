@@ -25,6 +25,30 @@ vi.mock("@/components/MapPanel", () => ({
   )
 }));
 vi.mock("@/components/NavigationButtons", () => ({ NavigationButtons: () => null }));
+vi.mock("@/components/PlaceSearch", () => ({
+  PlaceSearch: ({
+    label,
+    selected,
+    onSelect,
+  }: {
+    label: string;
+    selected: { name: string } | null;
+    onSelect: (place: {
+      id: string;
+      name: string;
+      address: string;
+      latitude: number;
+      longitude: number;
+      source: "DEMO";
+    }) => void;
+  }) => {
+    const origin = label.startsWith("출발지");
+    const place = origin
+      ? { id: "city-hall", name: "서울시청", address: "서울 중구", latitude: 37.5665, longitude: 126.978, source: "DEMO" as const }
+      : { id: "coex", name: "코엑스", address: "서울 강남구", latitude: 37.5117, longitude: 127.0592, source: "DEMO" as const };
+    return <label>{label}<input aria-label={label} value={selected?.name ?? ""} readOnly /><button type="button" onClick={() => onSelect(place)}>{label} 선택</button></label>;
+  },
+}));
 
 import { AppShell } from "@/components/AppShell";
 import type { ParkingRecommendation, RecommendationResponse } from "@/lib/types";
@@ -109,6 +133,11 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+async function selectReadyPlan(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("button", { name: "출발지 직접 검색 선택" }));
+  await user.click(screen.getByRole("button", { name: "목적지 검색 선택" }));
+}
+
 async function renderReadyApp(payload: RecommendationResponse = response) {
   const user = userEvent.setup();
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
@@ -116,7 +145,7 @@ async function renderReadyApp(payload: RecommendationResponse = response) {
     json: vi.fn().mockResolvedValue(payload)
   }));
   render(<AppShell />);
-  await user.click(screen.getByRole("button", { name: /예시 채우기/ }));
+  await selectReadyPlan(user);
   return user;
 }
 
@@ -130,6 +159,7 @@ describe("AppShell recommendation results", () => {
 
   it("uses explicit arrival and stay labels", () => {
     render(<AppShell />);
+    expect(screen.queryByRole("button", { name: "예시 채우기" })).toBeNull();
     expect(screen.getByText("도착 예정시간")).toBeTruthy();
     expect(screen.getByText("예상 체류 시간")).toBeTruthy();
     expect(screen.getByRole("button", { name: "지금" }).classList.contains("now-button")).toBe(true);
@@ -186,7 +216,8 @@ describe("AppShell recommendation results", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     render(<AppShell />);
-    fireEvent.click(screen.getByRole("button", { name: /예시 채우기/ }));
+    fireEvent.click(screen.getByRole("button", { name: "출발지 직접 검색 선택" }));
+    fireEvent.click(screen.getByRole("button", { name: "목적지 검색 선택" }));
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
       await Promise.resolve();
@@ -308,7 +339,7 @@ describe("AppShell recommendation results", () => {
       }>(resolve => { resolveFetch = resolve; });
     }));
     render(<AppShell />);
-    await user.click(screen.getByRole("button", { name: /예시 채우기/ }));
+    await selectReadyPlan(user);
     await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
 
     await user.selectOptions(screen.getByLabelText("예상 체류 시간"), "120");
@@ -402,7 +433,7 @@ describe("AppShell recommendation results", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
     render(<AppShell />);
-    await user.click(screen.getByRole("button", { name: /예시 채우기/ }));
+    await selectReadyPlan(user);
     await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
     const mapNode = await screen.findByTestId("map-panel");
     expect(screen.getByTestId("map-recommendation-count").textContent).toBe("3");
@@ -435,7 +466,7 @@ describe("AppShell recommendation results", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
     render(<AppShell />);
-    await user.click(screen.getByRole("button", { name: /예시 채우기/ }));
+    await selectReadyPlan(user);
 
     await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
     await user.selectOptions(screen.getByLabelText("예상 체류 시간"), "120");
@@ -471,7 +502,7 @@ describe("AppShell recommendation results", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
     render(<AppShell />);
-    await user.click(screen.getByRole("button", { name: /예시 채우기/ }));
+    await selectReadyPlan(user);
     await user.click(screen.getByRole("button", { name: /추천 주차장 찾기/ }));
     await act(async () => {
       pendingResolve({ ok: true, json: async () => response });
