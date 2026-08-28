@@ -9,12 +9,9 @@ import { NavigationButtons } from "@/components/NavigationButtons";
 import { PlaceSearch } from "@/components/PlaceSearch";
 import { RecommendationPanel } from "@/components/RecommendationPanel";
 import { useGeolocation } from "@/hooks/use-geolocation";
-import { DEMO_PLACES } from "@/lib/mock";
 import type { Place, RecommendationProfile, RecommendationResponse } from "@/lib/types";
 import { clamp, localInputToIso, toLocalDateTimeInput } from "@/lib/utils";
 
-const cityHall = DEMO_PLACES.find(place => place.id === "city-hall") as Place;
-const coex = DEMO_PLACES.find(place => place.id === "coex") as Place;
 const INITIAL_VISIBLE_RECOMMENDATIONS = 3;
 const AUTO_REFRESH_INTERVAL_MS = 2 * 60_000;
 const profileItems: Array<{ value: RecommendationProfile; label: string; sub: string }> = [
@@ -279,15 +276,6 @@ export function AppShell() {
     };
   }, [editing, result, runRecommendation]);
 
-  const demo = () => {
-    cancelInFlight();
-    setOrigin(cityHall);
-    setDestination(coex);
-    setArrival(toLocalDateTimeInput(new Date(Date.now() + 30 * 60_000)));
-    setDuration(180);
-    setProfile("BALANCED");
-    bumpDraftRevision();
-  };
   const selectOrigin = (place: Place) => { cancelInFlight(); setOrigin(place); bumpDraftRevision(); };
   const clearOrigin = () => { cancelInFlight(); setOrigin(null); bumpDraftRevision(); };
   const selectDestination = (place: Place) => { cancelInFlight(); setDestination(place); bumpDraftRevision(); };
@@ -304,7 +292,7 @@ export function AppShell() {
   return <main>
     <section className="hero"><div className="container hero-grid"><div><Badge tone="info"><Sparkles size={14} /> 네이버지도 기반</Badge><h1>목적지만 정하면,<br /><em>주차장은 알아서 비교.</em></h1><p>GPS 출발지와 목적지를 기준으로 빈자리, 요금, 이동시간을 비교하고 네이버지도로 바로 출발합니다.</p><div className="hero-features"><span><LocateFixed size={17} /> GPS 현재 위치</span><span><MapPinned size={17} /> 네이버 지도</span><span><Navigation size={17} /> 네이버 길안내</span></div></div><div className="hero-flow"><div><b>01</b><span><strong>출발·목적지</strong><small>GPS 또는 장소검색</small></span></div><ArrowRight /><div><b>02</b><span><strong>상위 3곳 비교</strong><small>거리·요금·빈자리</small></span></div><ArrowRight /><div><b>03</b><span><strong>경로 확인·출발</strong><small>네이버지도</small></span></div></div></div></section>
 
-    <section className="planner"><div className={`container planner-grid${result ? ` planner-grid--results planner-grid--mobile-${result && !editing ? mobileView : "map"}` : ""}`}>{showForm ? <div className="control-card"><div className="control-head"><div><span className="eyebrow">PARKING PLANNER</span><h2>방문 계획 입력</h2></div><Button variant="ghost" size="sm" onClick={demo}><RefreshCw size={15} /> 예시 채우기</Button></div>
+    <section className="planner"><div className={`container planner-grid${result ? ` planner-grid--results planner-grid--mobile-${result && !editing ? mobileView : "map"}` : ""}`}>{showForm ? <div className="control-card"><div className="control-head"><div><span className="eyebrow">PARKING PLANNER</span><h2>방문 계획 입력</h2></div></div>
       <section className="step"><div className="step-title"><b>1</b><span><strong>출발지</strong><small>현재 위치 또는 직접 검색</small></span></div><div className={`gps-box${origin?.source === "GPS" ? " is-selected" : ""}`}><span className="gps-icon"><LocateFixed /></span><div><strong>내 위치로 출발</strong><p>{geo.error || (geo.status === "requesting" || geo.status === "checking" ? "GPS를 확인하고 있습니다." : geo.value ? `현재 위치 확인 완료 · ±${geo.value.accuracyMeters}m` : "버튼을 눌러 위치 권한을 요청합니다.")}</p></div>{geo.value ? <><Button variant="soft" size="sm" onClick={applyGps}>{origin?.source === "GPS" ? "사용 중" : "출발지로 사용"}</Button><Button variant="ghost" size="icon" onClick={() => { onInputChange(); geo.refreshPosition(); }} aria-label="위치 새로고침"><RefreshCw size={17} /></Button></> : <Button variant="secondary" size="sm" onClick={() => { onInputChange(); geo.requestPosition(); }} disabled={geo.status === "requesting" || geo.status === "checking" || geo.status === "unsupported" || geo.status === "insecure"}>{geo.status === "requesting" || geo.status === "checking" ? <LoaderCircle className="spin" size={17} /> : <LocateFixed size={17} />} 현재 위치 사용</Button>}</div><div className="divider"><span>또는</span></div><PlaceSearch label="출발지 직접 검색" placeholder="예: 서울역, 강남구청" selected={origin} onSelect={selectOrigin} onClear={clearOrigin} hint="GPS 권한이 없어도 사용할 수 있습니다." /></section>
       <section className="step"><div className="step-title"><b>2</b><span><strong>목적지</strong><small>최종 방문 장소</small></span></div><PlaceSearch label="목적지 검색" placeholder="예: 코엑스, 더현대 서울" selected={destination} onSelect={selectDestination} onClear={clearDestination} /></section>
       <section className="step step--last"><div className="step-title"><b>3</b><span><strong>추천 조건</strong><small>체류시간과 탐색 반경</small></span></div><div className="options"><div className="options-title"><SlidersHorizontal size={17} /><strong>방문 조건</strong></div><div className="option-grid"><label>도착 예정시간<div className="inline"><input type="datetime-local" value={arrival} onChange={event => { onInputChange(); setArrival(event.target.value); }} /><Button className="now-button" variant="soft" size="sm" onClick={() => { onInputChange(); setArrival(toLocalDateTimeInput(new Date())); }}>지금</Button></div></label><label>예상 체류 시간<select value={duration} onChange={event => { onInputChange(); setDuration(Number(event.target.value)); }}><option value={60}>1시간</option><option value={120}>2시간</option><option value={180}>3시간</option><option value={240}>4시간</option><option value={360}>6시간</option></select></label></div>{PROFILE_SELECTOR_ENABLED ? <fieldset><legend>추천 기준</legend><div className="profiles">{profileItems.map(item => <label key={item.value} className={profile === item.value ? "is-selected" : ""}><input type="radio" name="profile" checked={profile === item.value} onChange={() => { onInputChange(); setProfile(item.value); }} /><strong>{item.label}</strong><small>{item.sub}</small></label>)}</div></fieldset> : null}<div className="distance"><div className="distance-toggle" role="group" aria-label="탐색 반경"><button type="button" className={distanceMode === "AUTO" ? "is-selected" : ""} onClick={() => onSwitchMode("AUTO")}>AUTO</button><button type="button" className={distanceMode === "MANUAL" ? "is-selected" : ""} onClick={() => onSwitchMode("MANUAL")}>MANUAL</button></div>{distanceMode === "AUTO" ? <p className="distance-hint">가까운 공영주차장 최대 10곳 자동 탐색</p> : <label className="distance-slider"><span>최대 거리 <strong>{manualDistance}m</strong></span><input type="range" min={50} max={1_000} step={50} value={manualDistance} onChange={event => onSliderChange(Number(event.target.value))} aria-label="최대 거리" /></label>}</div></div></section>

@@ -49,6 +49,12 @@ export function formatFeeRateLabel(rule: FeeRule): string {
   return "요금 기준 확인 필요";
 }
 
+export function formatDailyMaximumFeeLabel(rule: FeeRule): string | null {
+  const value = rule.dailyMaximumFee;
+  if (rule.isFree || typeof value !== "number" || !Number.isFinite(value) || value <= 0) return null;
+  return `1일 최대 ${formatCurrency(value)}`;
+}
+
 export function formatCurrency(value: number | null): string {
   if (value === null) return "요금 확인 필요";
   if (value === 0) return "무료";
