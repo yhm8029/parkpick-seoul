@@ -23,6 +23,8 @@ Server adapters and domain
 ├─ NAVER API HUB Local Search → Geocoding → demo places
 ├─ Seoul Parking Portal nearby search → NS/NW/BP allowlist
 ├─ portal exception only → GetParkInfo + GetParkingInfo fallback
+├─ Gyeonggi GITS parking info + availability → pkplcId join
+├─ Seoul + Gyeonggi allSettled merge → destination distance filter
 ├─ AUTO nearest 10 / MANUAL scored top 10 shortlist
 ├─ NAVER Directions 5 enrichment (maximum 10 parallel calls)
 └─ normalized RecommendationResponse
@@ -36,11 +38,13 @@ Server adapters and domain
 
 ## 추천과 경로
 
-`app/api/recommendations/route.ts`는 입력을 검증하고 서울시 어댑터를 호출합니다. `lib/domain/recommend.ts`는 부작용 없이 점수와 표시값을 계산합니다.
+`app/api/recommendations/route.ts`는 입력을 검증하고 서울·경기 어댑터를 동시에 호출합니다. `lib/domain/recommend.ts`는 부작용 없이 점수와 표시값을 계산합니다.
 
 Vercel 함수는 서울 주차 포털과 NAVER Maps의 한국 리전 네트워크 지연을 줄이기 위해 `vercel.json`에서 서울 리전(`icn1`)으로 배치합니다.
 
 기본 주차장 소스는 `parking.seoul.go.kr/SearchParking.do`입니다. 응답에는 민간 유형도 섞일 수 있으므로 `NS`, `NW`, `BP`만 허용하고 `BS`, `NP` 등은 정확한 allowlist에서 제외합니다. 포털 요청 자체가 실패했을 때만 `SEOUL_OPEN_API_KEY`가 있으면 열린데이터 GetParkInfo/GetParkingInfo를 대체 소스로 사용합니다.
+
+경기도는 교통정보센터의 `getParkingPlaceInfoList`와 `getParkingPlaceAvailabilityInfoList`를 병렬 호출하고 `pkplcId`로 결합합니다. 기본정보만 유효한 주차장도 `realtimeSupported: false`로 유지합니다. 추천 라우트는 `Promise.allSettled`로 서울·경기 공급자를 격리하고, 성공한 양쪽 후보를 합친 뒤 목적지 기준 거리를 적용합니다. 따라서 행정 경계를 먼저 판별하지 않으며, 한 공급자 장애가 다른 지역 후보를 숨기지 않습니다.
 
 Directions 호출량을 제한하기 위해 다음 2단계를 사용합니다.
 
@@ -67,6 +71,7 @@ Directions 호출량을 제한하기 위해 다음 2단계를 사용합니다.
 | `NAVER_API_HUB_KEY_ID`             | 서버      | 지역검색 Key ID                        |
 | `NAVER_API_HUB_KEY`                | 서버      | 지역검색 API Key                       |
 | `SEOUL_OPEN_API_KEY`               | 서버      | 포털 장애 시 서울 열린데이터 대체 소스 |
+| `GYEONGGI_GITS_API_KEY`            | 서버      | 경기도 주차장 기본·실시간 정보         |
 | `VERCEL_ANALYTICS_TOKEN`           | 서버      | 선택적 집계 API 토큰                   |
 
 `NEXT_PUBLIC_*` 변수는 번들에 공개됩니다. 비밀키에는 이 접두사를 사용하지 않습니다.
@@ -77,7 +82,9 @@ Directions 호출량을 제한하기 위해 다음 2단계를 사용합니다.
 | ------------------------ | --------------------------------- |
 | 위치 권한 거부·오류      | 직접 출발지 검색                  |
 | API HUB 지역검색 실패    | Geocoding, 이후 데모 장소검색     |
-| 서울 주차 포털 요청 실패 | 열린데이터 대체 소스, 없으면 503  |
+| 서울 주차 포털 요청 실패 | 열린데이터 대체 소스 사용         |
+| 서울·경기 중 한쪽 실패   | 성공한 지역 후보만 계속 제공      |
+| 서울·경기 모두 실패      | 503 안내                           |
 | 정상 응답에 후보 없음    | 빈 추천 안내, 데모 주차장 미사용  |
 | Directions 실패          | 해당 후보의 거리 기반 자동차 추정 |
 | Dynamic Map 실패·키 없음 | NAVER 미리보기 패널               |
