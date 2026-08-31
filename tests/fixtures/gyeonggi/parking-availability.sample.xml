@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ServiceResult>
+  <msgHeader><headerCd>0</headerCd><headerMsg>정상적으로 처리되었습니다.</headerMsg><itemCount>3</itemCount></msgHeader>
+  <msgBody>
+    <body>
+      <pkplcId>GG-1</pkplcId>
+      <avblPklotCnt>23</avblPklotCnt>
+      <ocrnDt>2026-08-31 10:15:00</ocrnDt>
+    </body>
+    <body>
+      <pkplcId>GG-NOTNUMERIC</pkplcId>
+      <avblPklotCnt>not-a-number</avblPklotCnt>
+      <ocrnDt>2026-08-31 10:15:00</ocrnDt>
+    </body>
+    <body>
+      <pkplcId>GG-3-UNKNOWN</pkplcId>
+      <avblPklotCnt>5</avblPklotCnt>
+      <ocrnDt>2026-08-31 10:15:00</ocrnDt>
+    </body>
+  </msgBody>
+</ServiceResult>

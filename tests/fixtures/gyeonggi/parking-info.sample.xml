@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ServiceResult>
+  <msgHeader><headerCd>0</headerCd><headerMsg>정상적으로 처리되었습니다.</headerMsg><itemCount>4</itemCount></msgHeader>
+  <msgBody>
+    <body>
+      <laeId>31030</laeId>
+      <laeNm>수원시</laeNm>
+      <pkplcId>GG-1</pkplcId>
+      <pkplcNm>율전 공영주차장</pkplcNm>
+      <latCrdn>37.3001</latCrdn>
+      <lonCrdn>127.0101</lonCrdn>
+      <roadNmAddr>경기도 수원시 장안구 율전로 1</roadNmAddr>
+      <pklotCnt>100</pklotCnt>
+      <parkingBscTime>30</parkingBscTime>
+      <parkingBscFare>1000</parkingBscFare>
+      <addUnitTime>10</addUnitTime>
+      <addUnitFare>500</addUnitFare>
+      <ddPktckFare>12000</ddPktckFare>
+      <wkdayOprtStartTime>0900</wkdayOprtStartTime>
+      <wkdayOprtEndTime>2200</wkdayOprtEndTime>
+    </body>
+    <body>
+      <laeId>31030</laeId>
+      <laeNm>수원시</laeNm>
+      <pkplcId>GG-2</pkplcId>
+      <pkplcNm>송죽 공영주차장</pkplcNm>
+      <latCrdn>37.3050</latCrdn>
+      <lonCrdn>127.0200</lonCrdn>
+      <roadNmAddr>경기도 수원시 장안구 송죽로 12</roadNmAddr>
+      <pklotCnt>50</pklotCnt>
+      <parkingBscTime>30</parkingBscTime>
+      <parkingBscFare>0</parkingBscFare>
+      <addUnitTime>10</addUnitTime>
+      <addUnitFare>0</addUnitFare>
+      <ddPktckFare>0</ddPktckFare>
+    </body>
+    <body>
+      <laeId>31030</laeId>
+      <laeNm>수원시</laeNm>
+      <pkplcId>GG-ZERO</pkplcId>
+      <pkplcNm>주차면 미등록 주차장</pkplcNm>
+      <latCrdn>37.3100</latCrdn>
+      <lonCrdn>127.0250</lonCrdn>
+      <roadNmAddr>경기도 수원시 장안구 주차면 미등록</roadNmAddr>
+      <pklotCnt>0</pklotCnt>
+    </body>
+    <body>
+      <laeId>31030</laeId>
+      <laeNm>수원시</laeNm>
+      <pkplcId>GG-OOR</pkplcId>
+      <pkplcNm>경계 밖 주차장</pkplcNm>
+      <latCrdn>40.0000</latCrdn>
+      <lonCrdn>127.0300</lonCrdn>
+      <roadNmAddr>경기도 수원시 장안구 잘못된 좌표</roadNmAddr>
+      <pklotCnt>50</pklotCnt>
+    </body>
+  </msgBody>
+</ServiceResult>
