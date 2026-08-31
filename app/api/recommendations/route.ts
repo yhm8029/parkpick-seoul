@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchNaverDrivingRoutes } from "@/lib/api/naver-directions";
+import { fetchGyeonggiParkingLots } from "@/lib/api/gyeonggi-parking";
 import { fetchSeoulParkingLots } from "@/lib/api/seoul-parking";
 import { fetchNearbySeoulParking } from "@/lib/api/seoul-parking-nearby";
 import { haversineDistanceMeters } from "@/lib/domain/distance";
@@ -125,6 +126,38 @@ function filterByDistance(
     .map((entry) => entry.lot);
 }
 
+interface ParkingProviderResult {
+  lots: ParkingLot[];
+  dataMode: DataMode;
+  notice: string;
+}
+
+async function fetchSeoulCandidates(
+  destination: Coordinate,
+  distanceMeters: number,
+): Promise<ParkingProviderResult> {
+  try {
+    const proximity = await fetchNearbySeoulParking(destination, distanceMeters);
+    return { lots: proximity.lots, dataMode: "LIVE", notice: proximity.notice };
+  } catch (error) {
+    console.error("Seoul nearby fallback", error);
+    if (!process.env.SEOUL_OPEN_API_KEY) throw error;
+
+    const fallback = await fetchSeoulParkingLots();
+    return {
+      lots: fallback.lots,
+      dataMode: "FALLBACK",
+      notice: "근접 주차장 서비스 연결 실패로 서울시 공공데이터 대체 소스를 사용했습니다.",
+    };
+  }
+}
+
+function deduplicateLots(lots: ParkingLot[]): ParkingLot[] {
+  return Array.from(
+    new Map(lots.map((lot) => [`${lot.source}:${lot.sourceId}`, lot])).values(),
+  );
+}
+
 export async function POST(request: Request) {
   let body: unknown;
   try {
@@ -146,37 +179,47 @@ export async function POST(request: Request) {
       : { distanceMode: "AUTO" };
   const distanceMeters = metersForSelection(distanceSelection);
 
-  let lots: ParkingLot[] = [];
-  let dataMode: DataMode;
-  let dataNotice: string;
+  const [seoulResult, gyeonggiResult] = await Promise.allSettled([
+    fetchSeoulCandidates(input.destination, distanceMeters),
+    fetchGyeonggiParkingLots(),
+  ]);
 
-  try {
-    const proximity = await fetchNearbySeoulParking(input.destination, distanceMeters);
-    lots = proximity.lots;
-    dataMode = "LIVE";
-    dataNotice = proximity.notice;
-  } catch (error) {
-    console.error("Seoul nearby fallback", error);
-    if (!process.env.SEOUL_OPEN_API_KEY) {
-      return NextResponse.json(
-        { error: "서울 주차 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요." },
-        { status: 503 },
-      );
-    }
-    try {
-      const fallback = await fetchSeoulParkingLots();
-      const filtered = filterByDistance(fallback.lots, input.destination, distanceMeters);
-      lots = filtered;
-      dataMode = "FALLBACK";
-      dataNotice = "근접 주차장 서비스 연결 실패로 서울시 공공데이터 대체 소스를 사용했습니다.";
-    } catch (fallbackError) {
-      console.error("Seoul open API fallback", fallbackError);
-      return NextResponse.json(
-        { error: "서울 주차 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요." },
-        { status: 503 },
-      );
-    }
+  if (seoulResult.status === "rejected" && gyeonggiResult.status === "rejected") {
+    console.error("Seoul parking providers unavailable", seoulResult.reason);
+    console.error("Gyeonggi parking provider unavailable", gyeonggiResult.reason);
+    return NextResponse.json(
+      { error: "서울·경기 주차 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요." },
+      { status: 503 },
+    );
   }
+
+  const providerLots: ParkingLot[] = [];
+  const notices: string[] = [];
+  const modes: DataMode[] = [];
+
+  if (seoulResult.status === "fulfilled") {
+    providerLots.push(...seoulResult.value.lots);
+    notices.push(seoulResult.value.notice);
+    modes.push(seoulResult.value.dataMode);
+  } else {
+    notices.push("서울 주차 정보는 현재 불러오지 못했습니다.");
+  }
+
+  if (gyeonggiResult.status === "fulfilled") {
+    providerLots.push(...gyeonggiResult.value.lots);
+    notices.push(gyeonggiResult.value.notice);
+    modes.push("LIVE");
+  } else {
+    notices.push("경기도 주차 정보는 현재 불러오지 못했습니다.");
+  }
+
+  const lots = filterByDistance(
+    deduplicateLots(providerLots),
+    input.destination,
+    distanceMeters,
+  );
+  const dataMode: DataMode = modes.includes("LIVE") ? "LIVE" : "FALLBACK";
+  let dataNotice = notices.filter(Boolean).join(" ");
 
   const preliminary = recommendParking(lots, input);
   const routeCandidates = preliminary.recommendations;
@@ -185,9 +228,7 @@ export async function POST(request: Request) {
     ? recommendParking(routeCandidates, input, routes)
     : preliminary;
   if (ranked.recommendations.length === 0) {
-    dataNotice = dataMode === "FALLBACK"
-      ? "서울시 공공데이터 대체 소스에서도 선택한 거리 안의 공영주차장을 찾지 못했습니다."
-      : "선택한 거리 안에서 공영주차장을 찾지 못했습니다.";
+    dataNotice = `선택한 거리 안에서 공영주차장을 찾지 못했습니다. ${dataNotice}`.trim();
   }
   const response: RecommendationResponse = {
     generatedAt: new Date().toISOString(),
