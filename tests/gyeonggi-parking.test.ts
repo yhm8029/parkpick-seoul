@@ -7,9 +7,7 @@ import {
 } from "@/lib/api/gyeonggi-parking-normalize";
 import {
   createGyeonggiParkingClient,
-  fetchGyeonggiParkingLots,
 } from "@/lib/api/gyeonggi-parking";
-import type { ParkingLot } from "@/lib/types";
 
 const INFO_FIXTURE_PATH = fileURLToPath(new URL("./fixtures/gyeonggi/parking-info.sample.xml", import.meta.url));
 const AVAILABILITY_FIXTURE_PATH = fileURLToPath(
@@ -189,7 +187,7 @@ describe("Gyeonggi parking client", () => {
   });
 
   it("rejects non-zero provider response codes without caching and never includes the key in the notice", async () => {
-    let now = 1_700_000_000_000;
+    const now = 1_700_000_000_000;
     const errorXml = infoXml.replace("<headerCd>0</headerCd>", "<headerCd>7</headerCd>");
     const fetchImpl = vi.fn(async (input: string | URL) => {
       const url = typeof input === "string" ? input : input.toString();

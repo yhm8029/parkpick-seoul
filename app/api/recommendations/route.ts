@@ -185,8 +185,8 @@ export async function POST(request: Request) {
   ]);
 
   if (seoulResult.status === "rejected" && gyeonggiResult.status === "rejected") {
-    console.error("Seoul parking providers unavailable", seoulResult.reason);
-    console.error("Gyeonggi parking provider unavailable", gyeonggiResult.reason);
+    // Do not log provider error objects: upstream request URLs can contain server-only keys.
+    console.error("Seoul and Gyeonggi parking providers unavailable");
     return NextResponse.json(
       { error: "서울·경기 주차 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요." },
       { status: 503 },
