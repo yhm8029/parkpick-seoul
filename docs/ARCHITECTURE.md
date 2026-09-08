@@ -23,7 +23,7 @@ Server adapters and domain
 ├─ NAVER API HUB Local Search → Geocoding → demo places
 ├─ Seoul Parking Portal nearby search → NS/NW/BP allowlist
 ├─ portal exception only → GetParkInfo + GetParkingInfo fallback
-├─ Gyeonggi GITS parking info + availability → pkplcId join
+├─ Gyeonggi GITS parking info + availability → laeId + pkplcId join
 ├─ Seoul + Gyeonggi allSettled merge → destination distance filter
 ├─ AUTO nearest 10 / MANUAL scored top 10 shortlist
 ├─ NAVER Directions 5 enrichment (maximum 10 parallel calls)
@@ -44,7 +44,7 @@ Vercel 함수는 서울 주차 포털과 NAVER Maps의 한국 리전 네트워�
 
 기본 주차장 소스는 `parking.seoul.go.kr/SearchParking.do`입니다. 응답에는 민간 유형도 섞일 수 있으므로 `NS`, `NW`, `BP`만 허용하고 `BS`, `NP` 등은 정확한 allowlist에서 제외합니다. 포털 요청 자체가 실패했을 때만 `SEOUL_OPEN_API_KEY`가 있으면 열린데이터 GetParkInfo/GetParkingInfo를 대체 소스로 사용합니다.
 
-경기도는 교통정보센터의 `getParkingPlaceInfoList`와 `getParkingPlaceAvailabilityInfoList`를 병렬 호출하고 `pkplcId`로 결합합니다. 기본정보만 유효한 주차장도 `realtimeSupported: false`로 유지합니다. 추천 라우트는 `Promise.allSettled`로 서울·경기 공급자를 격리하고, 성공한 양쪽 후보를 합친 뒤 목적지 기준 거리를 적용합니다. 따라서 행정 경계를 먼저 판별하지 않으며, 한 공급자 장애가 다른 지역 후보를 숨기지 않습니다.
+경기도는 교통정보센터의 `getParkingPlaceInfoList`와 `getParkingPlaceAvailabilityInfoList`를 병렬 호출하고 시·군 코드 `laeId`와 주차장 ID `pkplcId`를 함께 사용해 결합합니다. `pkplcId`는 시·군 사이에서 중복되므로 내부 ID에도 시·군 코드를 포함합니다. XML 파서는 실제 응답의 `<itemList>`와 기존 `<body>` 행을 모두 지원합니다. 기본정보만 유효한 주차장도 `realtimeSupported: false`로 유지합니다. 추천 라우트는 `Promise.allSettled`로 서울·경기 공급자를 격리하고, 성공한 양쪽 후보를 합친 뒤 목적지 기준 거리를 적용합니다. 따라서 행정 경계를 먼저 판별하지 않으며, 한 공급자 장애가 다른 지역 후보를 숨기지 않습니다.
 
 Directions 호출량을 제한하기 위해 다음 2단계를 사용합니다.
 

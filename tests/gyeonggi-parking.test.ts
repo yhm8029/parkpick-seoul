@@ -41,7 +41,7 @@ describe("Gyeonggi GITS normalizer", () => {
     const availabilityRows = parseGyeonggiParkingXml(availabilityXml, "AVAILABILITY");
     const joined = joinGyeonggiParkingRows(infoRows, availabilityRows);
 
-    expect(joined.lots.map((lot) => lot.sourceId)).toEqual(["GG-1", "GG-2"]);
+    expect(joined.lots.map((lot) => lot.sourceId)).toEqual(["31030:GG-1", "31030:GG-2"]);
     expect(joined.stats).toEqual({
       infoRows: 4,
       availabilityRows: 3,
@@ -57,7 +57,7 @@ describe("Gyeonggi GITS normalizer", () => {
       feeRule: { isFree: false, baseMinutes: 30, baseFee: 1000 },
       address: "경기도 수원시 장안구 율전로 1",
     });
-    expect(joined.lots[0]?.id).toBe("gyeonggi-GG-1");
+    expect(joined.lots[0]?.id).toBe("gyeonggi-31030:GG-1");
     expect(joined.lots[0]?.latitude).toBe(37.3001);
     expect(joined.lots[0]?.longitude).toBe(127.0101);
     expect(joined.lots[0]?.capacity).toBe(100);
@@ -82,8 +82,8 @@ describe("Gyeonggi GITS normalizer", () => {
   it("clamps available spaces to capacity and falls back when availability is invalid", () => {
     const infoRows = parseGyeonggiParkingXml(infoXml, "INFO");
     const customAvailability = [
-      { pkplcId: "GG-1", avblPklotCnt: "999", ocrnDt: "2026-08-31 10:15:00" },
-      { pkplcId: "GG-2", avblPklotCnt: "not-a-number", ocrnDt: "2026-08-31 10:15:00" },
+      { laeId: "31030", pkplcId: "GG-1", avblPklotCnt: "999", ocrnDt: "2026-08-31 10:15:00" },
+      { laeId: "31030", pkplcId: "GG-2", avblPklotCnt: "not-a-number", ocrnDt: "2026-08-31 10:15:00" },
     ];
     const joined = joinGyeonggiParkingRows(infoRows, customAvailability);
     expect(joined.lots[0]?.availableSpaces).toBe(100);
@@ -126,9 +126,9 @@ describe("Gyeonggi GITS normalizer", () => {
   it("ignores availability rows whose pkplcId is missing or duplicates an existing one", () => {
     const infoRows = parseGyeonggiParkingXml(infoXml, "INFO");
     const availability = [
-      { pkplcId: "", avblPklotCnt: "10", ocrnDt: "2026-08-31 10:15:00" },
-      { pkplcId: "GG-1", avblPklotCnt: "7", ocrnDt: "2026-08-31 10:15:00" },
-      { pkplcId: "GG-1", avblPklotCnt: "8", ocrnDt: "2026-08-31 10:15:00" },
+      { laeId: "31030", pkplcId: "", avblPklotCnt: "10", ocrnDt: "2026-08-31 10:15:00" },
+      { laeId: "31030", pkplcId: "GG-1", avblPklotCnt: "7", ocrnDt: "2026-08-31 10:15:00" },
+      { laeId: "31030", pkplcId: "GG-1", avblPklotCnt: "8", ocrnDt: "2026-08-31 10:15:00" },
     ];
     const joined = joinGyeonggiParkingRows(infoRows, availability);
     expect(joined.lots[0]?.availableSpaces).toBe(7);
@@ -167,7 +167,7 @@ describe("Gyeonggi parking client", () => {
     ]);
 
     expect(a.lots).toHaveLength(2);
-    expect(a.lots.map((lot) => lot.sourceId)).toEqual(["GG-1", "GG-2"]);
+    expect(a.lots.map((lot) => lot.sourceId)).toEqual(["31030:GG-1", "31030:GG-2"]);
     expect(a.lots.every((lot) => lot.source === "GYEONGGI_GITS")).toBe(true);
     expect(fetchImpl).toHaveBeenCalledTimes(2);
     expect(b).toBe(a);

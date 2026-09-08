@@ -82,15 +82,15 @@ export function parseGyeonggiParkingXml(
 
   const bodyRegion = readBodyRegion(xml);
   const rows: GyeonggiRow[] = [];
-  const bodyPattern = /<body\b[^>]*>([\s\S]*?)<\/body>/gi;
-  let bodyMatch: RegExpExecArray | null;
+  const rowWrapperPattern = /<(body|itemList)\b[^>]*>([\s\S]*?)<\/\1>/gi;
+  let wrapperMatch: RegExpExecArray | null;
 
-  while ((bodyMatch = bodyPattern.exec(bodyRegion)) !== null) {
-    rows.push(parseBodyFields(bodyMatch[1] ?? ""));
+  while ((wrapperMatch = rowWrapperPattern.exec(bodyRegion)) !== null) {
+    rows.push(parseBodyFields(wrapperMatch[2] ?? ""));
   }
 
   if (rows.length === 0 && service === "INFO") {
-    throw new Error("Gyeonggi XML msgBody contains no <body> rows");
+    throw new Error("Gyeonggi XML msgBody contains no <body> or <itemList> rows");
   }
   return rows;
 }
@@ -150,19 +150,27 @@ export function joinGyeonggiParkingRows(
 
   const availabilityById = new Map<string, GyeonggiRow>();
   for (const row of availabilityRows) {
-    const id = (row.pkplcId ?? "").trim();
-    if (id && !availabilityById.has(id)) availabilityById.set(id, row);
+    const laeId = (row.laeId ?? "").trim();
+    const pkplcId = (row.pkplcId ?? "").trim();
+    if (!laeId || !pkplcId) continue;
+    const id = `${laeId}:${pkplcId}`;
+    if (!availabilityById.has(id)) availabilityById.set(id, row);
   }
 
   for (const info of infoRows) {
-    const sourceId = (info.pkplcId ?? "").trim();
+    const laeId = (info.laeId ?? "").trim();
+    const pkplcId = (info.pkplcId ?? "").trim();
+    if (!laeId || !pkplcId) {
+      rejectedRows += 1;
+      continue;
+    }
+    const sourceId = `${laeId}:${pkplcId}`;
     const name = (info.pkplcNm ?? "").trim();
     const latitude = numberFrom(info.latCrdn);
     const longitude = numberFrom(info.lonCrdn);
     const capacity = numberFrom(info.pklotCnt);
 
     if (
-      !sourceId ||
       !name ||
       latitude === null ||
       longitude === null ||
