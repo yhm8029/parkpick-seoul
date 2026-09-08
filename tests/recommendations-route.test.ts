@@ -5,12 +5,14 @@ import type { Coordinate, ParkingLot } from "@/lib/types";
 const mocks = vi.hoisted(() => ({
   nearby: vi.fn(),
   fallback: vi.fn(),
+  gyeonggi: vi.fn(),
   naverRoutes: vi.fn(),
   kakaoRoutes: vi.fn(() => { throw new Error("Kakao routes must stay dormant"); }),
 }));
 
 vi.mock("@/lib/api/seoul-parking-nearby", () => ({ fetchNearbySeoulParking: mocks.nearby }));
 vi.mock("@/lib/api/seoul-parking", () => ({ fetchSeoulParkingLots: mocks.fallback }));
+vi.mock("@/lib/api/gyeonggi-parking", () => ({ fetchGyeonggiParkingLots: mocks.gyeonggi }));
 vi.mock("@/lib/api/naver-directions", () => ({ fetchNaverDrivingRoutes: mocks.naverRoutes }));
 vi.mock("@/lib/api/kakao-routes", () => ({ fetchDrivingRoutes: mocks.kakaoRoutes }));
 
@@ -41,6 +43,17 @@ const lot = (id: string, offset: number, available: number): ParkingLot => ({
   feeRule: { isFree: false, baseMinutes: 10, baseFee: 500 },
   isOpen: true,
 });
+const gyeonggiLot = (id: string, offset: number, available: number | null): ParkingLot => ({
+  ...lot(id, offset, available ?? 0),
+  id: `gyeonggi-${id}`,
+  sourceId: id,
+  source: "GYEONGGI_GITS",
+  address: "경기도",
+  occupiedSpaces: available === null ? null : 100 - available,
+  availableSpaces: available,
+  realtimeUpdatedAt: available === null ? null : "2026-08-26T01:00:00.000Z",
+  realtimeSupported: available !== null,
+});
 
 const rankedLots = Array.from({ length: 10 }, (_, index) =>
   lot(`lot-${index + 1}`, (index + 1) * 0.0001, 90 - index),
@@ -58,9 +71,16 @@ const routeSections = Array.from({ length: 256 }, (_, index) => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.stubEnv("SEOUL_OPEN_API_KEY", "test-seoul-key");
   mocks.nearby.mockResolvedValue({
     lots: nearbyLots,
     notice: "서울 주차 데이터",
+  });
+  mocks.fallback.mockResolvedValue({ lots: [], notice: "서울 대체 데이터" });
+  mocks.gyeonggi.mockResolvedValue({
+    lots: [],
+    notice: "경기도 주차 데이터",
+    stats: { infoRows: 0, availabilityRows: 0, matchedRows: 0, rejectedRows: 0 },
   });
   mocks.naverRoutes.mockImplementation(async (_routeOrigin: Coordinate, lots: ParkingLot[]) => lots.map((item) => ({
     parkingId: item.id,
@@ -71,6 +91,22 @@ beforeEach(() => {
     congestionSections: routeSections,
   })));
 });
+
+function recommendationRequest(maxDistanceMeters = 1_000): Request {
+  return new Request("http://localhost/api/recommendations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      origin,
+      destination,
+      arrivalAt: "2026-08-26T02:00:00.000Z",
+      durationMinutes: 180,
+      profile: "BALANCED",
+      distanceMode: "MANUAL",
+      maxDistanceMeters,
+    }),
+  });
+}
 
 it("runs recommendation provider calls in Vercel's Seoul region", () => {
   const config = JSON.parse(
@@ -147,4 +183,77 @@ it("falls back to estimates when NAVER returns only a subset", async () => {
   expect(body.recommendations).toHaveLength(10);
   expect(body.recommendations.filter((item: { routeSource: string }) => item.routeSource === "NAVER_DIRECTIONS")).toHaveLength(9);
   expect(body.recommendations.filter((item: { routeSource: string }) => item.routeSource === "ESTIMATE")).toHaveLength(1);
+});
+
+it("merges Seoul and Gyeonggi lots before applying the destination distance", async () => {
+  mocks.nearby.mockResolvedValue({
+    lots: [lot("seoul-near", 0.001, 30)],
+    notice: "서울 주차 데이터",
+  });
+  mocks.gyeonggi.mockResolvedValue({
+    lots: [gyeonggiLot("gg-near", 0.0012, null), gyeonggiLot("gg-far", 0.01, 20)],
+    notice: "경기도 주차 데이터",
+    stats: { infoRows: 2, availabilityRows: 1, matchedRows: 1, rejectedRows: 0 },
+  });
+
+  const response = await POST(recommendationRequest(300));
+  const body = await response.json();
+
+  expect(response.status).toBe(200);
+  expect(mocks.nearby).toHaveBeenCalledTimes(1);
+  expect(mocks.gyeonggi).toHaveBeenCalledTimes(1);
+  expect(body.recommendations.map((item: ParkingLot) => item.source)).toEqual(
+    expect.arrayContaining(["SEOUL_OPEN_DATA", "GYEONGGI_GITS"]),
+  );
+  expect(body.recommendations.map((item: ParkingLot) => item.sourceId)).not.toContain("gg-far");
+  expect(body.dataNotice).toContain("서울 주차 데이터");
+  expect(body.dataNotice).toContain("경기도 주차 데이터");
+});
+
+it("keeps Gyeonggi recommendations when both Seoul sources fail", async () => {
+  mocks.nearby.mockRejectedValue(new Error("nearby unavailable"));
+  mocks.fallback.mockRejectedValue(new Error("fallback unavailable"));
+  mocks.gyeonggi.mockResolvedValue({
+    lots: [gyeonggiLot("gg-only", 0.001, null)],
+    notice: "경기도 주차 데이터",
+    stats: { infoRows: 1, availabilityRows: 0, matchedRows: 0, rejectedRows: 0 },
+  });
+
+  const response = await POST(recommendationRequest(300));
+  const body = await response.json();
+
+  expect(response.status).toBe(200);
+  expect(body.recommendations).toHaveLength(1);
+  expect(body.recommendations[0].source).toBe("GYEONGGI_GITS");
+  expect(body.recommendations[0].realtimeSupported).toBe(false);
+  expect(body.dataNotice).toContain("서울 주차 정보는 현재 불러오지 못했습니다");
+});
+
+it("keeps Seoul recommendations when Gyeonggi is unavailable", async () => {
+  mocks.gyeonggi.mockRejectedValue(new Error("approval pending"));
+  mocks.nearby.mockResolvedValue({
+    lots: [lot("seoul-only", 0.001, 30)],
+    notice: "서울 주차 데이터",
+  });
+
+  const response = await POST(recommendationRequest(300));
+  const body = await response.json();
+
+  expect(response.status).toBe(200);
+  expect(body.recommendations).toHaveLength(1);
+  expect(body.recommendations[0].source).toBe("SEOUL_OPEN_DATA");
+  expect(body.dataNotice).toContain("경기도 주차 정보는 현재 불러오지 못했습니다");
+});
+
+it("returns 503 only when both regional providers fail", async () => {
+  mocks.nearby.mockRejectedValue(new Error("nearby unavailable"));
+  mocks.fallback.mockRejectedValue(new Error("fallback unavailable"));
+  mocks.gyeonggi.mockRejectedValue(new Error("approval pending"));
+
+  const response = await POST(recommendationRequest(300));
+
+  expect(response.status).toBe(503);
+  await expect(response.json()).resolves.toMatchObject({
+    error: expect.stringContaining("서울·경기"),
+  });
 });
