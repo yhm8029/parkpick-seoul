@@ -30,7 +30,9 @@ it("explains both travel legs and unsupported realtime availability", () => {
   expect(screen.getByText("주차장 → 목적지 · 약 200m")).toBeTruthy();
   expect(screen.getByText("기본 5분 150원")).toBeTruthy();
   expect(screen.getByText("1일 최대 20,000원")).toBeTruthy();
-  expect(screen.getByText("서울 주차 포털에서 이 주차장의 실시간 빈자리를 제공하지 않습니다.")).toBeTruthy();
+  expect(screen.getByText("이 주차장의 실시간 빈자리 정보를 확인할 수 없습니다.")).toBeTruthy();
   rerender(<ParkingCard origin={origin} parking={{ ...parking, feeRule: { isFree: false } }} active onSelect={vi.fn()} />);
   expect(screen.queryByText(/1일 최대/)).toBeNull();
+  rerender(<ParkingCard origin={origin} parking={{ ...parking, realtimeSupported: true }} active onSelect={vi.fn()} />);
+  expect(screen.queryByText("이 주차장의 실시간 빈자리 정보를 확인할 수 없습니다.")).toBeNull();
 });
